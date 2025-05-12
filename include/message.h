@@ -1,5 +1,5 @@
-#ifndef BAKERY_MESSAGE_H
-#define BAKERY_MESSAGE_H
+#ifndef POLICE_REPORT
+#define POLICE_REPORT
 
 // define message queue keys
 #define POLICE_REPORT_KEY 0xCAFEBABE
