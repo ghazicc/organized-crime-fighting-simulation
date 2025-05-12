@@ -15,8 +15,8 @@ Animation* CreateAnimation(Texture2D texture, Rectangle *frames, int length, flo
     Rectangle *temp = (Rectangle*)malloc(length * sizeof(Rectangle));
     if (!temp) {
         TraceLog(LOG_FATAL, "Failed to allocate memory for animation frames");
-        anim->length = 0;
-        return anim;
+        FreeAnimation(&anim);
+        return NULL;
     }
 
     anim->frames = temp;
