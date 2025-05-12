@@ -3,6 +3,7 @@
 
 #include <fcntl.h>
 #include "config.h"
+#include "gang.h"
 
 
 typedef struct Game {
@@ -11,6 +12,9 @@ typedef struct Game {
     int num_successfull_plans;
     int num_executed_agents;
     int elapsed_time;
+
+    Gang *gangs; // Pointer to dynamic array of gangs
+    int total_gangs; // Number of gangs currently in the game
 
     Config config;
 } Game;

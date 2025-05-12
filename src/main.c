@@ -27,7 +27,7 @@ int main(int argc,char *argv[])
     printf("********** Bakery Simulation **********\n\n");
     fflush(stdout);
 
-    reset_all_semaphores();
+    // reset_all_semaphores();
 
     atexit(cleanup_resources);
 
