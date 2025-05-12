@@ -35,8 +35,8 @@ int main(int argc, char *argv[]) {
     
 
     // validate gang ID
-    if (gang < 0 || gang >= config.max_gangs) {
-        fprintf(stderr, "Invalid gang ID: %d\n", gang);
+    if (gang_id < 0 || gang_id >= config.max_gangs) {
+        fprintf(stderr, "Invalid gang ID: %d\n", gang_id);
         exit(EXIT_FAILURE);
     }
 

@@ -10,7 +10,7 @@ enable_testing()
 add_executable(main src/main.c src/utils/config.c src/game.c src/utils/semaphores_utils.c
         src/utils/shared_mem_utils.c)
 
-add_executable(gang src/gang/gang.c src/utils/shared_mem_utils.c src/utils/config.c)
+add_executable(gang src/gang/gang.c src/gang/actual_gang_member.c src/gang/secret_agent.c src/utils/shared_mem_utils.c src/utils/config.c)
 add_executable(police src/police/police.c src/utils/shared_mem_utils.c src/utils/config.c)
 #add_executable(graphics src/graphics/graphics.c src/utils/shared_mem_utils.c)
 #

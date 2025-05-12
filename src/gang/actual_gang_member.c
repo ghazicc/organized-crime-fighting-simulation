@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "actual_gang_member.h"
+
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
     // GangMember *member = (GangMember*)arg;

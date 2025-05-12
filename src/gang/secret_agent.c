@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "secret_agent.h"
+
 void* secret_agent_thread_function(void* arg) {
     printf("Secret agent thread started\n");
     // GangMember *member = (GangMember*)arg;
