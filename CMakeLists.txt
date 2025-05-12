@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.11.2)
 project(organized_crime C CXX)
 set(CMAKE_C_STANDARD 11)
 
+# Set default build type to Debug if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 #set(LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib")
 # Testing temporarily disabled
 #include(cmake/tests.cmake)

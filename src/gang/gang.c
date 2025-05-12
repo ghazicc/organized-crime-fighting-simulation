@@ -21,8 +21,8 @@ void cleanup();
 void handle_sigint(int signum);
 
 int main(int argc, char *argv[]) {
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
+    if(argc != 3) {
+        fprintf(stderr, "Usage: %s <config_file> <gang_id>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     
