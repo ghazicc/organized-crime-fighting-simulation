@@ -32,7 +32,7 @@ int main(int argc,char *argv[])
 
     atexit(cleanup_resources);
 
-    setup_shared_memory(shared_game);
+    setup_shared_memory(shared_game, &config);
 
     signal(SIGALRM,handle_alarm);
     signal(SIGINT ,handle_kill);
