@@ -18,6 +18,10 @@ Game* setup_shared_memory_owner(Config *cfg) {
     size_t members_size = cfg->max_gangs * cfg->max_gang_size * sizeof(Member);
     size_t total_size = game_size + gangs_size + members_size;
     
+    printf("OWNER: Game struct layout: Game size: %zu, Gang: %zu, Member: %zu\n", 
+           sizeof(Game), sizeof(Gang), sizeof(Member));
+    fflush(stdout);
+    
     printf("OWNER: Memory sizes - game: %zu, gangs: %zu, members: %zu, total: %zu\n",
            game_size, gangs_size, members_size, total_size);
     
@@ -47,6 +51,32 @@ Game* setup_shared_memory_owner(Config *cfg) {
     close(shm_fd);
     
     printf("OWNER: Shared memory created and mapped successfully at %p\n", (void*)game);
+    fflush(stdout);
+    
+    // Initialize the memory layout
+    printf("OWNER: Initializing memory layout\n");
+    fflush(stdout);
+    
+    // Initialize game fields
+    game->elapsed_time = 0;
+    game->num_thwarted_plans = 0;
+    game->num_successfull_plans = 0;
+    game->num_executed_agents = 0;
+    game->total_gangs = 0;
+    
+    // Set up pointers to dynamic parts
+    game->gangs = (Gang*)((char*)game + sizeof(Game));
+    
+    // Set up gang member pointers
+    for (int i = 0; i < cfg->max_gangs; i++) {
+        game->gangs[i].gang_id = i; // Pre-initialize gang IDs
+        game->gangs[i].members_count = 0;
+        game->gangs[i].members = (Member*)((char*)game->gangs + 
+                                       gangs_size + 
+                                       i * cfg->max_gang_size * sizeof(Member));
+    }
+    
+    printf("OWNER: Shared memory layout initialized\n");
     fflush(stdout);
     
     return game;
@@ -82,6 +112,31 @@ Game* setup_shared_memory_user(Config *cfg) {
     close(shm_fd);
     
     printf("USER: Successfully connected to shared memory at %p\n", (void*)game);
+    fflush(stdout);
+    
+    // CRITICAL: We must recreate all the pointers in the shared memory structure
+    // because pointers from one process's address space don't make sense in another process
+    
+    printf("USER: Setting up internal pointers in shared memory\n");
+    fflush(stdout);
+    
+    // Set up gangs pointer
+    game->gangs = (Gang*)((char*)game + sizeof(Game));
+    printf("USER: Gangs array at offset %ld, address %p\n", 
+           (char*)game->gangs - (char*)game, (void*)game->gangs);
+    fflush(stdout);
+    
+    // Set up member pointers for each gang
+    for (int i = 0; i < cfg->max_gangs; i++) {
+        game->gangs[i].members = (Member*)((char*)game->gangs + 
+                                      gangs_size + 
+                                      i * cfg->max_gang_size * sizeof(Member));
+        printf("USER: Gang %d members at offset %ld, address %p\n",
+               i, (char*)game->gangs[i].members - (char*)game, (void*)game->gangs[i].members);
+        fflush(stdout);
+    }
+    
+    printf("USER: All internal pointers initialized\n");
     fflush(stdout);
     
     return game;

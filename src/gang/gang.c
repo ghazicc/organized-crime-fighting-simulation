@@ -54,12 +54,24 @@ int main(int argc, char *argv[]) {
 
     if (shared_game == NULL) {
         fprintf(stderr, "Failed to set up shared memory\n");
+        fflush(stdout);
         exit(EXIT_FAILURE);
     }
     
-    // assign gang struct
+    // Print the base address of shared memory for debugging
+    printf("Gang %d: Shared memory mapped at %p\n", gang_id, (void*)shared_game);
+    fflush(stdout);
+    
+    // Assign gang struct
     gang = &shared_game->gangs[gang_id];
+    
+    // Update gang_id in shared memory
     gang->gang_id = gang_id;
+    
+    // Initialize members_count if needed
+    if (gang->members_count == 0) {
+        gang->members_count = config.max_gang_size;
+    }
 
 
     printf("Gang %d process started...\n", gang_id);
@@ -75,18 +87,29 @@ int main(int argc, char *argv[]) {
         gang->members[i].is_agent = (rand() % 100) < (config.agent_success_rate * 100);
         gang->members[i].suspicion_level = 0.0f;
 
+        // CRITICAL: Allocate memory for thread argument to avoid data race
+        Member *thread_arg = malloc(sizeof(Member));
+        if (thread_arg == NULL) {
+            fprintf(stderr, "Failed to allocate memory for thread argument\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        // Copy the member data to the allocated memory
+        *thread_arg = gang->members[i];
+        
         // Create thread for each member
         int ret;
         pthread_t thread_id;
         if(gang->members[i].is_agent) {
             printf("Creating secret agent thread %d\n", i);
-            ret = pthread_create(&thread_id, NULL, secret_agent_thread_function, &gang->members[i]);
-            gang->members[i].thread = thread_id;
+            ret = pthread_create(&thread_id, NULL, secret_agent_thread_function, thread_arg);
         } else {
             printf("Creating gang member thread %d\n", i);
-            ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, &gang->members[i]);
-            gang->members[i].thread = thread_id;
-        } 
+            ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
+        }
+        
+        gang->members[i].thread = thread_id;
+        
         if (ret != 0) {
             fprintf(stderr, "Failed to create thread: %d\n", ret);
         }
