@@ -21,17 +21,22 @@ void cleanup();
 void handle_sigint(int signum);
 
 int main(int argc, char *argv[]) {
+    printf("Gang process starting...\n");
+    fflush(stdout);
+
     if(argc != 3) {
-        fprintf(stderr, "Usage: %s <config_file> <gang_id>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <serialized_config> <gang_id>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     
-    // Load configuration
+    // Load configuration from serialized string
     Config config;
-
+    
+    // Deserialize the config from the provided string
     deserialize_config(argv[1], &config);
 
     int gang_id = atoi(argv[2]);
+    
     
 
     // validate gang ID
@@ -54,6 +59,8 @@ int main(int argc, char *argv[]) {
     gang = &shared_game->gangs[gang_id];
     gang->gang_id = gang_id;
 
+    
+
     // Initialize gang members and create threads for them
     for(int i = 0; i < config.max_gang_size; i++) {
         gang->members[i].gang_id = gang_id;
@@ -64,11 +71,21 @@ int main(int argc, char *argv[]) {
         gang->members[i].suspicion_level = 0.0f;
 
         // Create thread for each member
+        int ret;
+        pthread_t thread_id;
         if(gang->members[i].is_agent) {
-            gang->members[i].thread = pthread_create(&gang->members[i].thread, NULL, secret_agent_thread_function, &gang->members[i]);
+            printf("Creating secret agent thread %d\n", i);
+            ret = pthread_create(&thread_id, NULL, secret_agent_thread_function, &gang->members[i]);
+            gang->members[i].thread = thread_id;
         } else {
-            gang->members[i].thread = pthread_create(&gang->members[i].thread, NULL, actual_gang_member_thread_function, &gang->members[i]);
+            printf("Creating gang member thread %d\n", i);
+            ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, &gang->members[i]);
+            gang->members[i].thread = thread_id;
         } 
+        if (ret != 0) {
+            fprintf(stderr, "Failed to create thread: %d\n", ret);
+        }
+        fflush(stdout); // Make sure we see the debug output
  
     }
 
@@ -90,12 +107,12 @@ void handle_sigint(int signum) {
 }
 
 void cleanup() {
-
-    printf("cleaning up gang");
+    printf("cleaning up gang\n");
+    fflush(stdout);
+    
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
         }
     }
-
 }

@@ -15,13 +15,15 @@ void cleanup();
 void handle_sigint(int signum);
 
 int main(int argc, char *argv[]) {
-
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
+    printf("Police process starting...\n");
+    fflush(stdout);
+    
+    if(argc != 3) {
+        fprintf(stderr, "Usage: %s <serialized_config> <id>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     
-    // Load configuration
+    // Load configuration from serialized string
     Config config;
 
     deserialize_config(argv[1], &config);

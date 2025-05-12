@@ -11,6 +11,8 @@
 #include <stdlib.h>
 
 
+#define MAX_PATH 1024
+
 int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     game->elapsed_time = 0;
@@ -31,8 +33,8 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     }
 
     char *binary_paths[] = {
-        "./police",
-        "./gang"
+        "./build/police",
+        "./build/gang"
     };
 
     // police process
@@ -60,13 +62,13 @@ pid_t start_process(const char *binary, Config *cfg, int id) {
         // Convert fd to string
 
         // serialize config to a string
-        char config_buffer[sizeof(Config)];
+        char config_buffer[MAX_PATH];
         char id_buffer[10];
         snprintf(id_buffer, sizeof(id_buffer), "%d", id);
         serialize_config(cfg, config_buffer);
     
 
-        if (execl(binary, binary, id_buffer, config_buffer, NULL) == -1) {
+        if (execl(binary, binary, config_buffer, id_buffer, NULL) == -1) {
 
             printf("%s\n", binary);
             perror("execl failed");

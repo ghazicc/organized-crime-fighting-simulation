@@ -1,12 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h> // For sleep()
 #include "secret_agent.h"
+#include "game.h"
+#include "gang.h" // For Member struct
 
 void* secret_agent_thread_function(void* arg) {
     printf("Secret agent thread started\n");
-    // GangMember *member = (GangMember*)arg;
-    // Game *shared_game = member->game;
-    // Config *config = member->config;
+    fflush(stdout);
+    Member *member = (Member*)arg;
+    printf("Secret agent %d in gang %d started\n", member->member_id, member->gang_id);
+    fflush(stdout);
+    
+    // Add a slight delay to see if this thread runs
+    sleep(2);
+    printf("Secret agent thread still running after delay\n");
+    fflush(stdout);
+    
+    return NULL; // Return properly
 
     // // Simulate the secret agent's actions
     // while (1) {
