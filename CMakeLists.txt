@@ -8,7 +8,8 @@ set(LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
-add_executable(main src/main.c src/utils/config.c)
+add_executable(main src/main.c src/utils/config.c src/game.c src/utils/semaphores_utils.c
+src/utils/shared_mem_utils.c)
 include_directories(include)
 
 # Setting ASSETS_PATH

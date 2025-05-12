@@ -10,9 +10,7 @@
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
-pid_t  processes[6];
-pid_t *processes_sellers   = NULL;
-int    shm_fd              = -1;
+pid_t  processes[2];
 
 /* ----------------------------------------------------------- */
 void handle_alarm(int signum)
@@ -33,7 +31,7 @@ int main(int argc,char *argv[])
 
     atexit(cleanup_resources);
 
-    shm_fd = setup_shared_memory(&shared_game);
+    setup_shared_memory(&shared_game);
 
     signal(SIGALRM,handle_alarm);
     signal(SIGINT ,handle_kill);
@@ -42,7 +40,7 @@ int main(int argc,char *argv[])
         printf("Config file failed\n"); return 1;
     }
 
-    game_init(shared_game,processes,processes_sellers,shm_fd);
+    game_init(shared_game, processes);
 
     alarm(1);               /* start 1‑second timer */
 
@@ -57,9 +55,8 @@ void cleanup_resources()
 {
     printf("Cleaning up resources...\n"); fflush(stdout);
 
-    for(int i=0;i<6;i++) kill(processes[i],SIGINT);
+    for(int i=0;i<2;i++) kill(processes[i],SIGINT);
     cleanup_shared_memory(shared_game);
-    free(processes_sellers);
     printf("Cleanup complete\n");
 }
 void handle_kill(int signum){ exit(0); }

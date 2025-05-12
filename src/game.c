@@ -3,15 +3,11 @@
 //
 
 #include "game.h"
-#include "inventory.h"
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include "config.h"
 #include "unistd.h"
-#include <string.h>
-#include <stdbool.h>
-#include "shared_mem_utils.h"
+#include <stdlib.h>
 
 
 int game_init(Game *game, pid_t *processes) {
@@ -26,19 +22,15 @@ int game_init(Game *game, pid_t *processes) {
         "./gangs"
     };
 
-    for (int i = 0; i < 5; i++) {
-        bool suppress;
-        suppress = true;
-        if (strcmp(binary_paths[i], "./customer_manager") == 0)
-            suppress = false;
-        processes[i] = start_process(binary_paths[i], suppress);
+    for (int i = 0; i < 2; i++) {
+        processes[i] = start_process(binary_paths[i]);
     }
     
     return 0;
 }
 
 
-pid_t start_process(const char *binary, bool suppress) {
+pid_t start_process(const char *binary) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
@@ -48,9 +40,6 @@ pid_t start_process(const char *binary, bool suppress) {
     if (pid == 0) {
         // Now pass two arguments: shared memory fd and GUI pid.
         // Convert fd to string
-
-        if (suppress)
-            freopen("/dev/null", "w", stdout);
 
         if (execl(binary, binary, NULL)) {
 

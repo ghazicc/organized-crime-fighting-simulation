@@ -2,10 +2,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "products.h"
 
 
 
@@ -29,7 +25,6 @@ typedef struct {
 } Config;
 
 int load_config(const char *filename, Config *config);
-int load_product_catalog(const char *filename, ProductCatalog *catalog);
 void print_config(Config *config);
 int check_parameter_correctness(const Config *config);
 void serialize_config(Config *config, char *buffer);
