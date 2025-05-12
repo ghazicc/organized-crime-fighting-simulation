@@ -13,6 +13,11 @@ src/utils/shared_mem_utils.c)
 
 add_executable(gang src/gang/gang.c src/utils/shared_mem_utils.c)
 add_executable(police src/police/police.c src/utils/shared_mem_utils.c)
+#add_executable(graphics src/graphics/graphics.c src/utils/shared_mem_utils.c)
+#
+#
+#target_include_directories(graphics PRIVATE include/lib/raylib)
+#target_link_libraries(graphics PRIVATE ${LIBRARY_DIR}/libraylib.a)
 include_directories(include)
 
 
@@ -21,7 +26,6 @@ include_directories(include)
 
 if (CMAKE_RELEASE_BUILD)
     message("Release build")
-    target_compile_definitions(graphics PUBLIC ASSETS_PATH="./assets") # Set the asset path macro in release mode to a relative path that assumes the assets folder is in the same directory as the game executable
 else()
     message("Debug build")
     target_compile_definitions(main PUBLIC CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt") # Set the config path macro to the absolute path on the dev machine

@@ -9,28 +9,13 @@
  
  #include "animation.h"
  #include "game.h"
- #include "inventory.h"
- #include "products.h"
- #include "queue.h"
- #include "customer.h"
  #include "shared_mem_utils.h"
  
  #include <fcntl.h>
  #include <sys/mman.h>
- #include <unistd.h>
  #include <stdlib.h>
- #include <stdio.h>
  #include <string.h>
- 
- /* ---------- helper: readable baker team -------------------- */
- static const char* get_team_name_str(Team t){
-     switch(t){
-         case BREAD_BAKERS:           return "Bake Bread";
-         case CAKE_AND_SWEETS_BAKERS: return "Bake Cakes & Sweets";
-         case PASTRIES_BAKERS:        return "Bake Patisseries";
-         default:                     return "Unknown Team";
-     }
- }
+
  
  /* ---------- window & layout -------------------------------- */
  #ifndef ASSETS_PATH
