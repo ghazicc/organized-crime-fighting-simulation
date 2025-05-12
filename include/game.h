@@ -14,29 +14,16 @@
 
 typedef struct Game {
 
-    pid_t complaining_customer_pid;
-    int last_complaint_time;
+    int num_thwarted_plans;
+    int num_successfull_plans;
+    int num_executed_agents;
     int elapsed_time;
-    int num_frustrated_customers;
-    int num_complained_customers;
-    int num_customers_missing;
-    int num_customers_served;
-    int num_customers_cascade;
-    float daily_profit;
-    bool recent_complaint;
 
     Config config;
-    Inventory inventory;
-    ProductCatalog productCatalog;
-    ReadyProducts ready_products;
-
-    Info info;
-
-    Oven ovens[MAX_OVENS]; // Shared ovens
 } Game;
 
 // Still can keep these (but optional now)
-pid_t start_process(const char *binary, int shared_mem_fd, bool suppress);
+pid_t start_process(const char *binary, bool suppress);
 int game_init(Game *game, pid_t *processes, pid_t *processes_sellers, int shared_mem_fd);
 void game_destroy(int shm_fd, Game *shared_game);
 void game_create(int *shm_fd, Game **shared_game);

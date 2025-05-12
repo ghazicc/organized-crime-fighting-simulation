@@ -3,10 +3,8 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "assets.h"
 #include "config.h"
 #include "game.h"
-#include "queue.h"
 #include "shared_mem_utils.h"
 #include "semaphores_utils.h"
 
@@ -15,7 +13,6 @@ Game  *shared_game         = NULL;
 pid_t  processes[6];
 pid_t *processes_sellers   = NULL;
 int    shm_fd              = -1;
-queue_shm *queue           = NULL;
 
 /* ----------------------------------------------------------- */
 void handle_alarm(int signum)
@@ -62,7 +59,6 @@ void cleanup_resources()
 
     for(int i=0;i<6;i++) kill(processes[i],SIGINT);
     cleanup_shared_memory(shared_game);
-    shm_unlink(CUSTOMER_QUEUE_SHM_NAME);
     free(processes_sellers);
     printf("Cleanup complete\n");
 }
