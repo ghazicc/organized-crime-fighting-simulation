@@ -1,0 +1,1 @@
+void* secret_agent_thread_function(void* arg);

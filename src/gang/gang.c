@@ -10,6 +10,8 @@
 #include "config.h"
 #include "game.h"
 #include "gang.h"
+#include "actual_gang_member.h"
+#include "secret_agent.h"
 
 #include "shared_mem_utils.h"
 Game *shared_game;
@@ -53,7 +55,30 @@ int main(int argc, char *argv[]) {
     gang->gang_id = gang_id;
 
     // Initialize gang members and create threads for them
+    for(int i = 0; i < config.max_gang_size; i++) {
+        gang->members[i].gang_id = gang_id;
+        gang->members[i].member_id = i;
+        gang->members[i].rank = rand() % config.num_ranks;
+        gang->members[i].prep_contribution = 0;
+        gang->members[i].is_agent = (rand() % 100) < (config.agent_success_rate * 100);
+        gang->members[i].suspicion_level = 0.0f;
+
+        // Create thread for each member
+        if(gang->members[i].is_agent) {
+            gang->members[i].thread = pthread_create(&gang->members[i].thread, NULL, secret_agent_thread_function, &gang->members[i]);
+        } else {
+            gang->members[i].thread = pthread_create(&gang->members[i].thread, NULL, actual_gang_member_thread_function, &gang->members[i]);
+        } 
+ 
+    }
+
+    // Wait for all threads to finish
+    for(int i = 0; i < config.max_gang_size; i++) {
+        pthread_join(gang->members[i].thread, NULL);
+    }
     
+    // Cleanup resources
+    cleanup();
 
 
 }
