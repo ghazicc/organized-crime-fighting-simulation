@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    shared_game = setup_shared_memory(&config);
+    
+    // Police process is a user of shared memory, not the owner
+    shared_game = setup_shared_memory_user(&config);
 }
 
 

@@ -47,7 +47,9 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    shared_game = setup_shared_memory(&config);
+    
+    // Gang process is a user of shared memory, not the owner
+    shared_game = setup_shared_memory_user(&config);
 
 
     if (shared_game == NULL) {

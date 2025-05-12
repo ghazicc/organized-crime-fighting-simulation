@@ -6,8 +6,15 @@
 
 #define SHARED_MEM "/game_shared_mem"
 
+// For the main process (first to run) - creates and initializes shared memory
+Game* setup_shared_memory_owner(Config *cfg);
 
+// For secondary processes - only maps to existing shared memory
+Game* setup_shared_memory_user(Config *cfg);
+
+// Legacy function - to be removed once migration is complete
 Game* setup_shared_memory(Config *cfg);
+
 void cleanup_shared_memory(Game *shared_game);
 
 #endif // SHARED_MEM_UTILS_H

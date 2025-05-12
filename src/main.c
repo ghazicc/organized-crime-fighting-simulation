@@ -31,15 +31,18 @@ int main(int argc,char *argv[])
     // reset_all_semaphores();
 
     atexit(cleanup_resources);
+    
+    // Load config first
+    if (load_config(CONFIG_PATH, &config) == -1) {
+        printf("Config file failed\n"); 
+        return 1;
+    }
 
-    shared_game = setup_shared_memory(&config);
+    // Main process is the owner of shared memory
+    shared_game = setup_shared_memory_owner(&config);
 
     signal(SIGALRM,handle_alarm);
     signal(SIGINT ,handle_kill);
-
-    if (load_config(CONFIG_PATH, &config)==-1){
-        printf("Config file failed\n"); return 1;
-    }
 
     game_init(shared_game, processes, &config);
     alarm(1);               /* start 1‑second timer */
