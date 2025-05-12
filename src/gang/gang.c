@@ -14,7 +14,7 @@ Game *shared_game = NULL;
 void cleanup();
 void handle_sigint(int signum);
 
-int main(const int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     if(argc != 2) {
         fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
         exit(EXIT_FAILURE);
