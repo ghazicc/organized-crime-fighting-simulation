@@ -61,10 +61,12 @@ pid_t start_process(const char *binary, Config *cfg, int id) {
 
         // serialize config to a string
         char config_buffer[sizeof(Config)];
+        char id_buffer[10];
+        snprintf(id_buffer, sizeof(id_buffer), "%d", id);
         serialize_config(cfg, config_buffer);
     
 
-        if (execl(binary, binary, id, config_buffer, NULL) == -1) {
+        if (execl(binary, binary, id_buffer, config_buffer, NULL) == -1) {
 
             printf("%s\n", binary);
             perror("execl failed");
