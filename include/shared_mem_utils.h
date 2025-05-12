@@ -4,8 +4,10 @@
 
 #include "game.h"
 
+#define SHARED_MEM "/game_shared_mem"
 
-void setup_shared_memory(Game **shared_game);
+
+void setup_shared_memory(Game *shared_game, Config *cfg);
 void cleanup_shared_memory(Game *shared_game);
 
 #endif // SHARED_MEM_UTILS_H

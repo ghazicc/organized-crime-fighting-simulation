@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include "config.h"
 
 #include "shared_mem_utils.h"
 Game *shared_game;
@@ -13,11 +14,21 @@ Game *shared_game;
 void cleanup();
 void handle_sigint(int signum);
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    if(argc != 2) {
+        fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    
+    // Load configuration
+    Config config;
+
+    deserialize_config(argv[1], &config);
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    setup_shared_memory(&shared_game);
+    setup_shared_memory(shared_game, &config);
 }
 
 
