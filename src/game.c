@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 
+#define MAX_PATH 128
 int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     game->elapsed_time = 0;
@@ -35,15 +36,20 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         GANG_EXECUTABLE
     };
 
-    for (int i = 0; i < 2; i++) {
-        processes[i] = start_process(binary_paths[i], cfg);
+    // police process
+    processes[0] = start_process(binary_paths[0], cfg, 0);
+
+
+    // gang processes
+    for(int i = 0; i < cfg->max_gangs; i++) {
+        processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
-    
+
     return 0;
 }
 
 
-pid_t start_process(const char *binary, Config *cfg) {
+pid_t start_process(const char *binary, Config *cfg, int id) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
@@ -55,11 +61,13 @@ pid_t start_process(const char *binary, Config *cfg) {
         // Convert fd to string
 
         // serialize config to a string
-        char config_buffer[sizeof(Config)];
+        char config_buffer[MAX_PATH];
+        char id_buffer[10];
+        snprintf(id_buffer, sizeof(id_buffer), "%d", id);
         serialize_config(cfg, config_buffer);
     
 
-        if (execl(binary, binary, config_buffer, NULL) == -1) {
+        if (execl(binary, binary, config_buffer, id_buffer, NULL) == -1) {
 
             printf("%s\n", binary);
             perror("execl failed");
