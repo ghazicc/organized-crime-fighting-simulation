@@ -9,15 +9,18 @@
 #include "config.h"
 
 #include "shared_mem_utils.h"
-Game *shared_game;
+Game *shared_game = NULL;
 
 void cleanup();
 void handle_sigint(int signum);
 
 int main(int argc, char *argv[]) {
+
+    atexit(cleanup);
+
     printf("Police process starting...\n");
     fflush(stdout);
-    
+
     if(argc != 3) {
         fprintf(stderr, "Usage: %s <serialized_config> <id>\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -28,9 +31,8 @@ int main(int argc, char *argv[]) {
 
     deserialize_config(argv[1], &config);
 
-    atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    
+
     // Police process is a user of shared memory, not the owner
     shared_game = setup_shared_memory_user(&config);
 }

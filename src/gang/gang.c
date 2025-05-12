@@ -14,7 +14,7 @@
 #include "secret_agent.h"
 
 #include "shared_mem_utils.h"
-Game *shared_game;
+Game *shared_game = NULL;
 Gang *gang;
 
 void cleanup();
@@ -31,13 +31,13 @@ int main(int argc, char *argv[]) {
     
     // Load configuration from serialized string
     Config config;
-    
+
     // Deserialize the config from the provided string
     deserialize_config(argv[1], &config);
 
     int gang_id = atoi(argv[2]);
-    
-    
+
+
 
     // validate gang ID
     if (gang_id < 0 || gang_id >= config.max_gangs) {
@@ -47,27 +47,20 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    
+
     // Gang process is a user of shared memory, not the owner
     shared_game = setup_shared_memory_user(&config);
 
-
-    if (shared_game == NULL) {
-        fprintf(stderr, "Failed to set up shared memory\n");
-        fflush(stdout);
-        exit(EXIT_FAILURE);
-    }
-    
     // Print the base address of shared memory for debugging
     printf("Gang %d: Shared memory mapped at %p\n", gang_id, (void*)shared_game);
     fflush(stdout);
-    
+
     // Assign gang struct
     gang = &shared_game->gangs[gang_id];
-    
+
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
-    
+
     // Initialize members_count if needed
     if (gang->members_count == 0) {
         gang->members_count = config.max_gang_size;
@@ -76,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     printf("Gang %d process started...\n", gang_id);
     fflush(stdout);
-    
+
 
     // Initialize gang members and create threads for them
     for(int i = 0; i < config.max_gang_size; i++) {
@@ -93,10 +86,10 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Failed to allocate memory for thread argument\n");
             exit(EXIT_FAILURE);
         }
-        
+
         // Copy the member data to the allocated memory
         *thread_arg = gang->members[i];
-        
+
         // Create thread for each member
         int ret;
         pthread_t thread_id;
@@ -107,21 +100,21 @@ int main(int argc, char *argv[]) {
             printf("Creating gang member thread %d\n", i);
             ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
         }
-        
+
         gang->members[i].thread = thread_id;
-        
+
         if (ret != 0) {
             fprintf(stderr, "Failed to create thread: %d\n", ret);
         }
         fflush(stdout); // Make sure we see the debug output
- 
+
     }
 
     // Wait for all threads to finish
     for(int i = 0; i < config.max_gang_size; i++) {
         pthread_join(gang->members[i].thread, NULL);
     }
-    
+
     // Cleanup resources
     cleanup();
 
@@ -135,12 +128,12 @@ void handle_sigint(int signum) {
 }
 
 void cleanup() {
+
     printf("cleaning up gang\n");
-    fflush(stdout);
-    
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
         }
     }
+
 }

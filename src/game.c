@@ -11,8 +11,7 @@
 #include <stdlib.h>
 
 
-#define MAX_PATH 1024
-
+#define MAX_PATH 128
 int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     game->elapsed_time = 0;
@@ -33,19 +32,19 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     }
 
     char *binary_paths[] = {
-        "./build/police",
-        "./build/gang"
+        POLICE_EXECUTABLE,
+        GANG_EXECUTABLE
     };
 
     // police process
     processes[0] = start_process(binary_paths[0], cfg, 0);
 
+
     // gang processes
     for(int i = 0; i < cfg->max_gangs; i++) {
         processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
-    
-    
+
     return 0;
 }
 
