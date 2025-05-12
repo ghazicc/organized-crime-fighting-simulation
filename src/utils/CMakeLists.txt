@@ -8,3 +8,4 @@ add_library(utils SHARED
 )
 
 target_include_directories(utils PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(utils PUBLIC pthread rt m)
