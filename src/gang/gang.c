@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    setup_shared_memory(shared_game, &config);
+    shared_game = setup_shared_memory(&config);
 }
 
 
