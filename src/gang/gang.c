@@ -16,6 +16,7 @@ void handle_sigint(int signum);
 int main() {
 
     atexit(cleanup);
+    signal(SIGINT, handle_sigint);
     setup_shared_memory(&shared_game);
 }
 
