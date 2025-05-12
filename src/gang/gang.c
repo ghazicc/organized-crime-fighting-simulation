@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <pthread.h>
 #include "config.h"
 
 #include "shared_mem_utils.h"
@@ -25,10 +26,11 @@ int main(int argc, char *argv[]) {
 
     deserialize_config(argv[1], &config);
 
-
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
     setup_shared_memory(shared_game, &config);
+
+    
 }
 
 
