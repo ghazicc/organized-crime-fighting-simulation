@@ -20,10 +20,10 @@ typedef struct Game {
 
 // Still can keep these (but optional now)
 pid_t start_process(const char *binary);
-int game_init(Game *game, pid_t *processes);
+int game_init(Game *game, pid_t *processes, Config *cfg);
 void game_destroy(int shm_fd, Game *shared_game);
 void game_create(int *shm_fd, Game **shared_game);
-int check_game_conditions(const Game *game);
+int check_game_conditions(const Game *game, const Config *cfg);
 void print_with_time1(const Game *game, const char *format, ...);
 
 #endif // GAME_H

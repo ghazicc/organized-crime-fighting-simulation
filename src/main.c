@@ -11,6 +11,7 @@
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
 pid_t  processes[2];
+Config config;
 
 /* ----------------------------------------------------------- */
 void handle_alarm(int signum)
@@ -31,20 +32,20 @@ int main(int argc,char *argv[])
 
     atexit(cleanup_resources);
 
-    setup_shared_memory(&shared_game);
+    setup_shared_memory(shared_game);
 
     signal(SIGALRM,handle_alarm);
     signal(SIGINT ,handle_kill);
 
-    if (load_config(CONFIG_PATH,&shared_game->config)==-1){
+    if (load_config(CONFIG_PATH, &config)==-1){
         printf("Config file failed\n"); return 1;
     }
 
-    game_init(shared_game, processes);
+    game_init(shared_game, processes, &config);
     alarm(1);               /* start 1‑second timer */
 
     /* empty polling loop – stays as before */
-    while (check_game_conditions(shared_game)){ /* nothing */ }
+    while (check_game_conditions(shared_game, &config)){ /* nothing */ }
 
     return 0;  /* cleanup_resources is run automatically */
 }

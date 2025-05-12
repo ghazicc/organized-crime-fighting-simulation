@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 
-int game_init(Game *game, pid_t *processes) {
+int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     game->elapsed_time = 0;
     game->num_thwarted_plans = 0;
@@ -24,14 +24,14 @@ int game_init(Game *game, pid_t *processes) {
     };
 
     for (int i = 0; i < 2; i++) {
-        processes[i] = start_process(binary_paths[i]);
+        processes[i] = start_process(binary_paths[i], cfg);
     }
     
     return 0;
 }
 
 
-pid_t start_process(const char *binary) {
+pid_t start_process(const char *binary, Config *cfg) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
@@ -42,7 +42,12 @@ pid_t start_process(const char *binary) {
         // Now pass two arguments: shared memory fd and GUI pid.
         // Convert fd to string
 
-        if (execl(binary, binary, NULL)) {
+        // serialize config to a string
+        char config_buffer[sizeof(Config)];
+        serialize_config(cfg, config_buffer);
+    
+
+        if (execl(binary, binary, config_buffer, NULL) == -1) {
 
             printf("%s\n", binary);
             perror("execl failed");
@@ -53,15 +58,16 @@ pid_t start_process(const char *binary) {
 }
 
 
-int check_game_conditions(const Game *game) {
+int check_game_conditions(const Game *game, const Config *cfg) {
+    // Check if the game has reached its maximum limits
 
-    if (game->num_executed_agents >= game->config.max_executed_agents) {
+    if (game->num_executed_agents >= cfg->max_executed_agents) {
         return 0;
     }
-    if (game->num_successfull_plans >= game->config.max_successful_plans) {
+    if (game->num_successfull_plans >= cfg->max_successful_plans) {
         return 0;
     }
-    if (game->num_thwarted_plans >= game->config.max_thwarted_plans) {
+    if (game->num_thwarted_plans >= cfg->max_thwarted_plans) {
         return 0;
     }
     return 1;
