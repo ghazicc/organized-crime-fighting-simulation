@@ -9,7 +9,7 @@ max_executed_agents=5
 
 ## Gang settings
 
-max_agents_per_gang
+max_agents_per_gang=3
 
 min_gangs=2
 max_gangs=10

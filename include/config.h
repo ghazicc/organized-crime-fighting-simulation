@@ -13,6 +13,7 @@ typedef struct {
     int min_gangs;
     int max_gangs;
     int min_gang_size;
+    int max_gang_size;
     float suspicion_threshold;
     float agent_success_rate;
     int prison_period;

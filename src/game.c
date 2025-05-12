@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include "config.h"
 #include "unistd.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 
@@ -19,7 +20,7 @@ int game_init(Game *game, pid_t *processes) {
 
     char *binary_paths[] = {
         "./police",
-        "./gangs"
+        "./gang"
     };
 
     for (int i = 0; i < 2; i++) {

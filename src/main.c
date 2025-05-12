@@ -41,7 +41,6 @@ int main(int argc,char *argv[])
     }
 
     game_init(shared_game, processes);
-
     alarm(1);               /* start 1‑second timer */
 
     /* empty polling loop – stays as before */
@@ -59,4 +58,6 @@ void cleanup_resources()
     cleanup_shared_memory(shared_game);
     printf("Cleanup complete\n");
 }
-void handle_kill(int signum){ exit(0); }
+void handle_kill(int signum) {
+    exit(0);
+}
