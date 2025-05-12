@@ -29,4 +29,14 @@ typedef struct {
     int members_count;
 } Gang;
 
+typedef enum {
+    TARGET_BANK_ROBBERY,
+    TARGET_JEWELRY_ROBBERY,
+    TARGET_DRUG_TRAFFICKING,
+    TARGET_ART_THEFT,
+    TARGET_KIDNAPPING,
+    TARGET_BLACKMAIL,
+    TARGET_ARMS_TRAFFICKING
+} TargetType;
+
 #endif //GANG_H

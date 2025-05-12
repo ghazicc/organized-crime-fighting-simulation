@@ -19,7 +19,7 @@ typedef struct Game {
 } Game;
 
 // Still can keep these (but optional now)
-pid_t start_process(const char *binary, Config *cfg);
+pid_t start_process(const char *binary, Config *cfg, int id);
 int game_init(Game *game, pid_t *processes, Config *cfg);
 void game_destroy(int shm_fd, Game *shared_game);
 void game_create(int *shm_fd, Game *shared_game);

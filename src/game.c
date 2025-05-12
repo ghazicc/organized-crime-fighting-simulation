@@ -35,15 +35,20 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         "./gang"
     };
 
-    for (int i = 0; i < 2; i++) {
-        processes[i] = start_process(binary_paths[i], cfg);
+    // police process
+    processes[0] = start_process(binary_paths[0], cfg, 0);
+
+    // gang processes
+    for(int i = 0; i < cfg->max_gangs; i++) {
+        processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
+    
     
     return 0;
 }
 
 
-pid_t start_process(const char *binary, Config *cfg) {
+pid_t start_process(const char *binary, Config *cfg, int id) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
