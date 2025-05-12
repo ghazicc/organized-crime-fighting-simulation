@@ -10,40 +10,22 @@
 
 
 typedef struct {
-    int MAX_TIME;
-    int MAX_CUSTOMERS;
-    float MAX_PATIENCE;
-    float MIN_PATIENCE;
-    float MAX_PATIENCE_DECAY;
-    float MIN_PATIENCE_DECAY;
-    int FRUSTRATED_CUSTOMERS;
-    int COMPLAINED_CUSTOMERS;
-    int CUSTOMERS_MISSING;
-    float DAILY_PROFIT;
-    int NUM_CHEFS;
-    int NUM_BAKERS;
-    int NUM_SELLERS;
-    int NUM_SUPPLY_CHAIN;
-    int MIN_PURCHASE_QUANTITY;
-    int MAX_PURCHASE_QUANTITY;
-    int MIN_TIME_FRUSTRATED;
-    int MAX_TIME_FRUSTRATED;
-    int MIN_OVEN_TIME;
-    int MAX_OVEN_TIME;
-    int NUM_OVENS;
-    int MIN_BAKE_TIME;
-    int MAX_BAKE_TIME;
-    float CUSTOMER_PROBABILITY;
-    int MIN_ORDER_ITEMS;
-    int MAX_ORDER_ITEMS;
-    float CUSTOMER_CASCADE_PROBABILITY;
-    int CASCADE_WINDOW;
-    int MIN_SELLER_PROCESSING_TIME;
-    int MAX_SELLER_PROCESSING_TIME;
-    int REALLOCATION_CHECK_INTERVAL;
-    float PRODUCTION_RATIO_THRESHOLD;
-    int MIN_CHEFS_PER_TEAM;
-    int INGREDIENTS_TO_ORDER;
+    int max_thwarted_plans;
+    int max_successful_plans;
+    int max_executed_agents;
+    int max_agents_per_gang;
+    int min_gangs;
+    int max_gangs;
+    int min_gang_size;
+    float suspicion_threshold;
+    float agent_success_rate;
+    int prison_period;
+    int num_ranks;
+    int min_time_prepare;
+    int max_time_prepare;
+    int min_level_prepare;
+    int max_level_prepare;
+    float death_probability;
 } Config;
 
 int load_config(const char *filename, Config *config);

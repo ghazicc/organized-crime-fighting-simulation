@@ -1,46 +1,32 @@
 # Configurations
 
-## Game settings
+## Termination settings
 
-MAX_TIME=500            # Maximum time for the game (in minutes)
-MAX_CUSTOMERS=1          # Maximum number of customers at once
-FRUSTRATED_CUSTOMERS=5        # Number of frustrated customers
-COMPLAINED_CUSTOMERS=3          # Number of customers that complained
-CUSTOMERS_MISSING=2            # Number of customers missing
-DAILY_PROFIT=1000            # Daily profit
-NUM_CHEFS=14            # Number of chefs
-NUM_BAKERS=6         # Number of bakers
-NUM_SELLERS=2           # Number of sellers
-NUM_SUPPLY_CHAIN=2        # Number of supply chain members
+max_thwarted_plans=3
+max_successful_plans=3
+max_executed_agents=5
 
-MIN_PURCHASE_QUANTITY=1        # Minimum purchase quantity
-MAX_PURCHASE_QUANTITY=2        # Maximum purchase quantity
 
-MIN_OVEN_TIME=1        # should be changed later for each type
-MAX_OVEN_TIME=3       # should be changed later for each type
+## Gang settings
 
-MIN_BAKE_TIME=1        # Minimum bake time
-MAX_BAKE_TIME=4        # Maximum bake time
+max_agents_per_gang
 
-MIN_TIME_FRUSTRATED=5
-MAX_TIME_FRUSTRATED=10
+min_gangs=2
+max_gangs=10
 
-MIN_PATIENCE=1        # Minimum patience level
-MAX_PATIENCE=5        # Maximum patience level
+min_gang_size=3
+max_gang_size=10
 
-MIN_PATIENCE_DECAY=0.2        # Minimum patience decay
-MAX_PATIENCE_DECAY=0.4        # Maximum patience decay
+suspicion-threshold=0.8
+agent_success_rate=0.5
 
-CUSTOMER_PROBABILITY=0.5        # Probability of a customer arriving (every sec)
+prison_period=10
 
-MIN_ORDER_ITEMS=1        # Minimum number of items in an order
-MAX_ORDER_ITEMS=2        # Maximum number of items in an order
+num_ranks=7
+min_time_prepare=4
+max_time_prepare=10
 
-CUSTOMER_CASCADE_PROBABILITY=0.1        # Probability of a customer cascade (every sec)
-CASCADE_WINDOW=5        # Time window for customer cascade (in seconds)
+min_level_prepare=4
+max_level_prepare=10
 
-NUM_OVENS=2            # Number of ovens
-
-INGREDIENTS_TO_ORDER=3  # Number of ingredients that supply chain can restock
-MIN_SELLER_PROCESSING_TIME=2        # Minimum processing time for sellers
-MAX_SELLER_PROCESSING_TIME=5        # Maximum processing time for sellers
+death_probability=0.3
