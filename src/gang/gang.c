@@ -59,6 +59,9 @@ int main(int argc, char *argv[]) {
     gang = &shared_game->gangs[gang_id];
     gang->gang_id = gang_id;
 
+
+    printf("Gang %d process started...\n", gang_id);
+    fflush(stdout);
     
 
     // Initialize gang members and create threads for them
