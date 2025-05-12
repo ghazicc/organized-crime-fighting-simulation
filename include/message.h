@@ -1,0 +1,16 @@
+#ifndef BAKERY_MESSAGE_H
+#define BAKERY_MESSAGE_H
+
+#define MAX_ITEM_NAME 25
+#define MAX_TEAM_NAME 25
+#define MAX_NAME_LENGTH 25
+#define CUSTOMER_SELLER_MSG_KEY 0x1234
+
+// define message queue keys
+#define CHEF_BAKER_KEY 0xCAFEBABE
+#define MANAGER_BAKERS 0xBEEFBEEF
+
+
+
+
+#endif // BAKERY_MESSAGE_H

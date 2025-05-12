@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11.2)
-project(my_raylib_game C)
+project(organized_crime C)
 set(CMAKE_C_STANDARD 99)
 
 set(LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib")
@@ -9,8 +9,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 add_executable(main src/main.c src/utils/config.c)
-
-
+include_directories(include)
 
 # Setting ASSETS_PATH
 

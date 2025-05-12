@@ -1,8 +1,6 @@
 #include "shared_mem_utils.h"
 #include <fcntl.h>
 #include <sys/mman.h>
-#include "customer.h"
-#include "queue.h"
 
 
 
