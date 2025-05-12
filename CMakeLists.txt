@@ -11,6 +11,7 @@ include_directories(include)
 # Configuration path definition
 if (CMAKE_RELEASE_BUILD)
     message("Release build")
+    add_compile_definitions(CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 else()
     message("Debug build")
     add_compile_definitions(CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt")

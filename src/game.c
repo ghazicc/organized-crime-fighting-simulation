@@ -31,8 +31,8 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     }
 
     char *binary_paths[] = {
-        "./police",
-        "./gang"
+        POLICE_EXECUTABLE,
+        GANG_EXECUTABLE
     };
 
     for (int i = 0; i < 2; i++) {
