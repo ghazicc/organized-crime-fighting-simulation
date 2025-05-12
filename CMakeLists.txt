@@ -3,14 +3,12 @@ project(organized_crime C CXX)
 set(CMAKE_C_STANDARD 11)
 
 #set(LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib")
-#include(cmake/tests.cmake)
+include(cmake/tests.cmake)
 find_package(GTest REQUIRED)
-#enable_testing()
+enable_testing()
 #
 add_executable(main src/main.c src/utils/config.c src/game.c src/utils/semaphores_utils.c
         src/utils/shared_mem_utils.c)
-
-target_link_libraries(main PRIVATE GTest::gtest_main)
 
 add_executable(gang src/gang/gang.c src/utils/shared_mem_utils.c)
 add_executable(police src/police/police.c src/utils/shared_mem_utils.c)
