@@ -1,5 +1,5 @@
 # Define common/shared library for utilities
-add_library(utils STATIC
+add_library(utils SHARED
         config.c
         semaphores_utils.c
         shared_mem_utils.c
