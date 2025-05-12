@@ -4,34 +4,36 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "gang.h"
 
 
+void setup_shared_memory(Game *shared_game, Config *cfg) {
+    // Allocate shared memory for Game + dynamic arrays
+    size_t game_size = sizeof(Game);
+    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
+    size_t members_size = cfg->max_gangs * cfg->max_gang_size * sizeof(Member);
 
-void setup_shared_memory(Game **shared_game) {
-    // Setup game shared memory as before
-    int shm_fd = shm_open(GAME_SHM_NAME, O_CREAT | O_RDWR, 0666);
-    ftruncate(shm_fd, sizeof(Game));
-    *shared_game = mmap(0, sizeof(Game), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    int shm_fd = shm_open("/crime_sim_shm", O_CREAT | O_RDWR, 0666);
+    ftruncate(shm_fd, game_size + gangs_size + members_size);
 
-    if (*shared_game == MAP_FAILED) {
-        perror("Failed to map shared memory");
-        exit(EXIT_FAILURE);
+    Game *game = mmap(NULL, game_size + gangs_size + members_size, 
+                    PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+
+    // Initialize pointers to dynamic parts
+    game->gangs = (Gang*)((char*)game + sizeof(Game));
+    game->total_gangs = 0;  // Updated as gangs spawn
+
+    // Initialize each Gang's member array
+    for (int i = 0; i < cfg->max_gangs; i++) {
+        game->gangs[i].members = (Member*)((char*)game->gangs + gangs_size + 
+                                        i * cfg->max_gang_size * sizeof(Member));
     }
 
-    fcntl(shm_fd, F_SETFD, fcntl(shm_fd, F_GETFD) & ~FD_CLOEXEC);
-    if (*shared_game == MAP_FAILED) {
-        perror("Failed to map shared memory");
-        exit(EXIT_FAILURE);
-    }
 }
 
+
 void cleanup_shared_memory(Game *shared_game) {
-    if (shared_game != NULL && shared_game != MAP_FAILED) {
-        if (munmap(shared_game, sizeof(Game)) == -1) {
-            perror("munmap failed");
-        }
-    }
-    shm_unlink(GAME_SHM_NAME);
+
 }
 
 
