@@ -16,7 +16,6 @@ typedef struct Game {
     Gang *gangs; // Pointer to dynamic array of gangs
     int total_gangs; // Number of gangs currently in the game
 
-    Config config;
 } Game;
 
 // Still can keep these (but optional now)
