@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
-    setup_shared_memory(shared_game, &config);
+    shared_game = setup_shared_memory(&config);
 }
 
 
@@ -39,7 +39,7 @@ void handle_sigint(int signum) {
 
 void cleanup() {
 
-    printf("cleaning up police");
+    printf("cleaning up police\n");
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");

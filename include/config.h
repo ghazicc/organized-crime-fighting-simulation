@@ -1,8 +1,8 @@
-// include/config.h
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct {
@@ -31,4 +31,7 @@ int check_parameter_correctness(const Config *config);
 void serialize_config(Config *config, char *buffer);
 void deserialize_config(const char *buffer, Config *config);
 
-#endif // CONFIG_H
+#ifdef __cplusplus
+}
+#endif
+
