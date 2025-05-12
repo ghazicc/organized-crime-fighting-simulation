@@ -9,7 +9,7 @@
 #include "config.h"
 
 #include "shared_mem_utils.h"
-Game *shared_game;
+Game *shared_game = NULL;
 
 void cleanup();
 void handle_sigint(int signum);
@@ -39,7 +39,7 @@ void handle_sigint(int signum) {
 
 void cleanup() {
 
-    printf("cleaning up gang");
+    printf("cleaning up gang\n");
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");

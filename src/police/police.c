@@ -9,12 +9,14 @@
 #include "config.h"
 
 #include "shared_mem_utils.h"
-Game *shared_game;
+Game *shared_game = NULL;
 
 void cleanup();
 void handle_sigint(int signum);
 
 int main(int argc, char *argv[]) {
+
+    atexit(cleanup);
 
     if(argc != 2) {
         fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
@@ -26,7 +28,6 @@ int main(int argc, char *argv[]) {
 
     deserialize_config(argv[1], &config);
 
-    atexit(cleanup);
     signal(SIGINT, handle_sigint);
     shared_game = setup_shared_memory(&config);
 }

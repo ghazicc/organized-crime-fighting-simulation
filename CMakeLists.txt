@@ -2,33 +2,28 @@ cmake_minimum_required(VERSION 3.11.2)
 project(organized_crime C CXX)
 set(CMAKE_C_STANDARD 11)
 
-#set(LIBRARY_DIR "${CMAKE_CURRENT_LIST_DIR}/lib")
-include(cmake/tests.cmake)
-find_package(GTest REQUIRED)
-enable_testing()
-#
-add_executable(main src/main.c src/utils/config.c src/game.c src/utils/semaphores_utils.c
-        src/utils/shared_mem_utils.c)
+# Option to enable/disable tests (ON by default)
+option(BUILD_TESTING "Build tests" ON)
 
-add_executable(gang src/gang/gang.c src/utils/shared_mem_utils.c src/utils/config.c)
-add_executable(police src/police/police.c src/utils/shared_mem_utils.c src/utils/config.c)
-#add_executable(graphics src/graphics/graphics.c src/utils/shared_mem_utils.c)
-#
-#
-#target_include_directories(graphics PRIVATE include/lib/raylib)
-#target_link_libraries(graphics PRIVATE ${LIBRARY_DIR}/libraylib.a)
+# Common include directories
 include_directories(include)
 
-
-
-# Setting ASSETS_PATH
-
+# Configuration path definition
 if (CMAKE_RELEASE_BUILD)
     message("Release build")
+    add_compile_definitions(CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 else()
     message("Debug build")
-    target_compile_definitions(main PUBLIC CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt") # Set the config path macro to the absolute path on the dev machine
+    add_compile_definitions(CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config.txt")
 endif()
 
-add_subdirectory(tests)
+# Add subdirectories for components
+add_subdirectory(src)
 
+# Add tests only if BUILD_TESTING is enabled
+if(BUILD_TESTING)
+    include(cmake/tests.cmake)
+    find_package(GTest REQUIRED)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
