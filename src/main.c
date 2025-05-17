@@ -1,12 +1,12 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #include "config.h"
+#include "json/json-config.h"
 #include "game.h"
 #include "shared_mem_utils.h"
-#include "semaphores_utils.h"
+
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
@@ -23,8 +23,7 @@ void handle_alarm(int signum)
 void cleanup_resources(void);
 void handle_kill(int);
 
-int main(int argc,char *argv[])
-{
+int main(int argc,char *argv[]) {
     printf("********** Bakery Simulation **********\n\n");
     fflush(stdout);
 
@@ -37,6 +36,12 @@ int main(int argc,char *argv[])
         printf("Config file failed\n"); 
         return 1;
     }
+
+    if (load_targets_from_json(JSON_PATH, shared_game->targets) == -1) {
+        printf("Json file failed");
+        return 1;
+    }
+
 
     // Main process is the owner of shared memory
     shared_game = setup_shared_memory_owner(&config);
@@ -54,8 +59,7 @@ int main(int argc,char *argv[])
 }
 
 /* ---- unchanged cleanup / signal handlers ------------------ */
-void cleanup_resources()
-{
+void cleanup_resources() {
     printf("Cleaning up resources...\n"); fflush(stdout);
 
     for(int i=0;i<2;i++) kill(processes[i],SIGINT);

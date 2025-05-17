@@ -9,6 +9,30 @@
 #include <pthread.h>
 
 
+typedef enum {
+    TARGET_BANK_ROBBERY,
+    TARGET_JEWELRY_ROBBERY,
+    TARGET_DRUG_TRAFFICKING,
+    TARGET_ART_THEFT,
+    TARGET_KIDNAPPING,
+    TARGET_BLACKMAIL,
+    TARGET_ARMS_TRAFFICKING,
+    TARGET_NUM
+} TargetType;
+
+
+// Attribute type enum
+typedef enum {
+    ATTR_SMARTNESS,
+    ATTR_STEALTH,
+    ATTR_STRENGTH,
+    ATTR_TECH_SKILLS,
+    ATTR_BRAVERY,
+    ATTR_NEGOTIATION,
+    ATTR_NETWORKING,
+    NUM_ATTRIBUTES
+} AttributeType;
+
 typedef struct {
     int member_id;  // Unique ID for each member
     int gang_id;    // ID of the gang this member belongs to
@@ -17,6 +41,7 @@ typedef struct {
     bool is_agent;
     float suspicion_level; // Suspicion level of the agent
     pthread_t thread; // Thread for the member
+    AttributeType attributes[NUM_ATTRIBUTES];
 } Member;
 
 
@@ -29,14 +54,11 @@ typedef struct {
     int members_count;
 } Gang;
 
-typedef enum {
-    TARGET_BANK_ROBBERY,
-    TARGET_JEWELRY_ROBBERY,
-    TARGET_DRUG_TRAFFICKING,
-    TARGET_ART_THEFT,
-    TARGET_KIDNAPPING,
-    TARGET_BLACKMAIL,
-    TARGET_ARMS_TRAFFICKING
-} TargetType;
+// Target struct
+typedef struct {
+    TargetType type;
+    char name[32];
+    double weights[NUM_ATTRIBUTES];
+} Target;
 
 #endif //GANG_H
