@@ -9,10 +9,11 @@
 #include "unistd.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 #define MAX_PATH 128
-int game_init(Game *game, pid_t *processes, Config *cfg) {
+int game_init(Game *game, pid_t *processes, Config *config) {
 
     game->elapsed_time = 0;
     game->num_thwarted_plans = 0;
@@ -23,12 +24,12 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     game->gangs = (Gang*)((char*)game + sizeof(Game));
     game->total_gangs = 0;  // Updated as gangs spawn
 
-    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
+    size_t gangs_size = config->max_gangs * sizeof(Gang);
 
     // Initialize each Gang's member array
-    for (int i = 0; i < cfg->max_gangs; i++) {
+    for (int i = 0; i < config->max_gangs; i++) {
         game->gangs[i].members = (Member*)((char*)game->gangs + gangs_size +
-                                        i * cfg->max_gang_size * sizeof(Member));
+                                        i * config->max_gang_size * sizeof(Member));
     }
 
     char *binary_paths[] = {
@@ -36,13 +37,25 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         GANG_EXECUTABLE
     };
 
-    // police process
-    processes[0] = start_process(binary_paths[0], cfg, 0);
+
+    // Create police departments (one per N gangs)
+    int depts = ceil(config->num_gangs / GANGS_PER_DEPARTMENT);
+    for (int i = 0; i < depts; i++) {
+        int dept_pid = fork();
+        if (dept_pid == 0) {
+            // Police department code
+            int start_gang = i * GANGS_PER_DEPARTMENT;
+            int end_gang = min((i+1) * GANGS_PER_DEPARTMENT, config.num_gangs);
+            police_department_function(start_gang, end_gang);
+            exit(0);
+        }
+        police_dept_pids[i] = dept_pid;
+    }
 
 
     // gang processes
-    for(int i = 0; i < cfg->max_gangs; i++) {
-        processes[i+1] = start_process(binary_paths[1], cfg, i);
+    for(int i = 0; i < config->max_gangs; i++) {
+        processes[i+1] = start_process(binary_paths[1], config, i);
     }
 
     return 0;
@@ -65,7 +78,7 @@ pid_t start_process(const char *binary, Config *cfg, int id) {
         char id_buffer[10];
         snprintf(id_buffer, sizeof(id_buffer), "%d", id);
         serialize_config(cfg, config_buffer);
-    
+
 
         if (execl(binary, binary, config_buffer, id_buffer, NULL) == -1) {
 

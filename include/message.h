@@ -12,5 +12,14 @@ typedef struct {
 } PoliceReport;
 
 
+typedef struct {
+    long mtype; // Message type
+    int target_type;
+    int agent_id;
+} PoliceAction;
+
+
+
+
 
 #endif // BAKERY_MESSAGE_H
