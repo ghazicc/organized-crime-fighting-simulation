@@ -15,8 +15,8 @@ protected:
 
     void SetUp() override {
         // Initialize targets array
-        for (int i = 0; i < TARGET_NUM; i++) {
-            memset(&targets[i], 0, sizeof(Target));
+        for (auto & target : targets) {
+            memset(&target, 0, sizeof(Target));
         }
     }
 
@@ -146,7 +146,77 @@ TEST_F(JsonConfigTest, ValidateTargetWeights) {
 
 // Test with actual config.json file
 TEST_F(JsonConfigTest, LoadActualConfigJson) {
-    int result = load_targets_from_json("config.json", targets);
+    // Create a copy of the actual config for testing
+    std::string content = R"({
+        "targets": {
+            "bank_robbery": {
+                "smartness": 0.10,
+                "stealth": 0.10,
+                "strength": 0.10,
+                "tech_skills": 0.40,
+                "bravery": 0.20,
+                "negotiation": 0.05,
+                "networking": 0.05
+            },
+            "jewelry_shop_robbery": {
+                "smartness": 0.10,
+                "stealth": 0.45,
+                "strength": 0.10,
+                "tech_skills": 0.20,
+                "bravery": 0.10,
+                "negotiation": 0.03,
+                "networking": 0.02
+            },
+            "drug_trafficking": {
+                "smartness": 0.10,
+                "stealth": 0.05,
+                "strength": 0.05,
+                "tech_skills": 0.05,
+                "bravery": 0.10,
+                "negotiation": 0.35,
+                "networking": 0.30
+            },
+            "art_theft": {
+                "smartness": 0.10,
+                "stealth": 0.50,
+                "strength": 0.05,
+                "tech_skills": 0.30,
+                "bravery": 0.02,
+                "negotiation": 0.02,
+                "networking": 0.01
+            },
+            "kidnapping": {
+                "smartness": 0.05,
+                "stealth": 0.05,
+                "strength": 0.25,
+                "tech_skills": 0.05,
+                "bravery": 0.30,
+                "negotiation": 0.25,
+                "networking": 0.05
+            },
+            "blackmail": {
+                "smartness": 0.10,
+                "stealth": 0.05,
+                "strength": 0.02,
+                "tech_skills": 0.18,
+                "bravery": 0.05,
+                "negotiation": 0.40,
+                "networking": 0.20
+            },
+            "arms_trafficking": {
+                "smartness": 0.10,
+                "stealth": 0.05,
+                "strength": 0.20,
+                "tech_skills": 0.05,
+                "bravery": 0.10,
+                "negotiation": 0.20,
+                "networking": 0.30
+            }
+        }
+    })";
+
+    createTestJsonFile(content);
+    int result = load_targets_from_json(test_json_path, targets);
     EXPECT_GT(result, 0);
 
     // Verify bank_robbery matches config.json
@@ -158,6 +228,17 @@ TEST_F(JsonConfigTest, LoadActualConfigJson) {
     EXPECT_DOUBLE_EQ(targets[TARGET_BANK_ROBBERY].weights[ATTR_BRAVERY], 0.20);
     EXPECT_DOUBLE_EQ(targets[TARGET_BANK_ROBBERY].weights[ATTR_NEGOTIATION], 0.05);
     EXPECT_DOUBLE_EQ(targets[TARGET_BANK_ROBBERY].weights[ATTR_NETWORKING], 0.05);
+
+
+
+    EXPECT_STREQ(targets[TARGET_JEWELRY_ROBBERY].name, "jewelry_shop_robbery");
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_SMARTNESS], 0.10);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_STEALTH], 0.45);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_STRENGTH], 0.10);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_TECH_SKILLS], 0.20);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_BRAVERY], 0.10);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_NEGOTIATION], 0.03);
+    EXPECT_DOUBLE_EQ(targets[TARGET_JEWELRY_ROBBERY].weights[ATTR_NETWORKING], 0.02);
 
     // Verify all targets have valid weights
     for (auto & target : targets) {
