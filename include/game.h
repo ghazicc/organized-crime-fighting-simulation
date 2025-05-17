@@ -14,7 +14,7 @@ typedef struct Game {
     int elapsed_time;
 
     Gang *gangs; // Pointer to dynamic array of gangs
-    int total_gangs; // Number of gangs currently in the game
+    int num_gangs; // Number of gangs currently in the game
 
 } Game;
 

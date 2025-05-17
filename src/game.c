@@ -2,14 +2,18 @@
 // Created by - on 3/26/2025.
 //
 
+#define GANGS_PER_DEPARTMENT 2
+
 #include "game.h"
 #include <fcntl.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include "config.h"
 #include "unistd.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+
+#include "random.h"
 
 
 #define MAX_PATH 128
@@ -22,7 +26,7 @@ int game_init(Game *game, pid_t *processes, Config *config) {
 
     // Initialize pointers to dynamic parts
     game->gangs = (Gang*)((char*)game + sizeof(Game));
-    game->total_gangs = 0;  // Updated as gangs spawn
+    game->num_gangs = (int) random_float(config->min_gangs, config->max_gangs);  // Updated as gangs spawn
 
     size_t gangs_size = config->max_gangs * sizeof(Gang);
 
@@ -39,17 +43,17 @@ int game_init(Game *game, pid_t *processes, Config *config) {
 
 
     // Create police departments (one per N gangs)
-    int depts = ceil(config->num_gangs / GANGS_PER_DEPARTMENT);
+    int depts = ceil(game->num_gangs / GANGS_PER_DEPARTMENT);
     for (int i = 0; i < depts; i++) {
         int dept_pid = fork();
         if (dept_pid == 0) {
             // Police department code
             int start_gang = i * GANGS_PER_DEPARTMENT;
-            int end_gang = min((i+1) * GANGS_PER_DEPARTMENT, config.num_gangs);
-            police_department_function(start_gang, end_gang);
+            int end_gang = min((i+1) * GANGS_PER_DEPARTMENT, game->num_gangs);
+            // police_department_function(start_gang, end_gang);
             exit(0);
         }
-        police_dept_pids[i] = dept_pid;
+        // police_dept_pids[i] = dept_pid;
     }
 
 
