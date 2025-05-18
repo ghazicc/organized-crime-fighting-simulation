@@ -12,6 +12,7 @@
 #include "gang.h"
 #include "actual_gang_member.h"
 #include "secret_agent.h"
+#include "target_selection.h"
 
 #include "shared_mem_utils.h"
 Game *shared_game = NULL;
@@ -70,7 +71,8 @@ int main(int argc, char *argv[]) {
 
     printf("Gang %d process started...\n", gang_id);
     fflush(stdout);
-
+    
+    
 
     // Initialize gang members and create threads for them
     for(int i = 0; i < config.max_gang_size; i++) {
@@ -85,6 +87,22 @@ int main(int argc, char *argv[]) {
         for (int j = 0; j < NUM_ATTRIBUTES; j++) {
             gang->members[i].attributes[j] = (rand() % 100)/100.0; // Random values for attributes
         }
+
+
+        // Find the member with the highest rank - but don't select target here
+        // Target selection will happen in the highest-ranked member's thread
+        highest_rank_member_id = find_highest_ranked_member(gang);
+        if (highest_rank_member_id >= 0) {
+            printf("Gang %d highest ranked member is member %d with rank %d\n", 
+               gang_id, highest_rank_member_id, gang->members[highest_rank_member_id].rank);
+            fflush(stdout);
+        } else {
+            printf("Gang %d has no members to select a target\n", gang_id);
+            fflush(stdout);
+        }
+
+        // make the highest ranked member have the highest rank
+        gang->members[highest_rank_member_id].rank = config.num_ranks - 1;
 
         // CRITICAL: Allocate memory for thread argument to avoid data race
         Member *thread_arg = &gang->members[i];

@@ -5,6 +5,7 @@ add_library(utils SHARED
         shared_mem_utils.c
         message_queue_utils.c
         random.c
+        target_selection.c
 )
 
 target_include_directories(utils PUBLIC ${CMAKE_SOURCE_DIR}/include)
