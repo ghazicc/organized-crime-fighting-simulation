@@ -23,7 +23,8 @@ typedef struct {
     int min_level_prepare;
     int max_level_prepare;
     float death_probability;
-    int difficulty_levels;
+    int difficulty_level;
+    int max_difficulty;
 } Config;
 
 int load_config(const char *filename, Config *config);
