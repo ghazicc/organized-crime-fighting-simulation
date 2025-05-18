@@ -142,38 +142,6 @@ Game* setup_shared_memory_user(Config *cfg) {
     return game;
 }
 
-// Legacy function - to be removed once migration is complete
-Game* setup_shared_memory(Config *cfg) {
-    printf("WARNING: Using deprecated function setup_shared_memory\n");
-    fflush(stdout);
-    
-    // Allocate shared memory for Game + dynamic arrays
-    size_t game_size = sizeof(Game);
-    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
-    size_t members_size = cfg->max_gangs * cfg->max_gang_size * sizeof(Member);
-    size_t total_size = game_size + gangs_size + members_size;
-
-    int shm_fd = shm_open(GAME_SHM_NAME, O_CREAT | O_RDWR, 0666);
-    if (shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-    
-    // WARNING: This is what causes the issue - we're truncating every time
-    ftruncate(shm_fd, total_size);
-
-    Game *game = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (game == MAP_FAILED) {
-        perror("mmap");
-        close(shm_fd);
-        exit(EXIT_FAILURE);
-    }
-    
-    close(shm_fd);
-    return game;
-}
-
-
 void cleanup_shared_memory(Game *shared_game) {
 
 }

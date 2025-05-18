@@ -12,9 +12,6 @@ Game* setup_shared_memory_owner(Config *cfg);
 // For secondary processes - only maps to existing shared memory
 Game* setup_shared_memory_user(Config *cfg);
 
-// Legacy function - to be removed once migration is complete
-Game* setup_shared_memory(Config *cfg);
-
 void cleanup_shared_memory(Game *shared_game);
 
 #endif // SHARED_MEM_UTILS_H
