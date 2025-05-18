@@ -30,3 +30,5 @@ min_level_prepare=4
 max_level_prepare=10
 
 death_probability=0.3
+
+difficulty_levels=10
