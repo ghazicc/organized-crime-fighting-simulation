@@ -14,8 +14,10 @@ typedef struct {
     int gang_id;    // ID of the gang this member belongs to
     int rank;       // Rank of the member in the gang
     int prep_contribution;
-    bool is_agent;
-    float suspicion_level; // Suspicion level of the agent
+    int8_t agent_id; // ID of the agent (if any)
+    float knowledge; // Knowledge level of the member
+    float suspicion; // Suspicion level of the agent
+    float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
 } Member;
 
