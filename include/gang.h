@@ -18,7 +18,7 @@ typedef enum {
     TARGET_KIDNAPPING,
     TARGET_BLACKMAIL,
     TARGET_ARMS_TRAFFICKING,
-    TARGET_NUM
+    NUM_TARGETS
 } TargetType;
 
 
@@ -46,6 +46,7 @@ typedef struct {
     float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
     float attributes[NUM_ATTRIBUTES];
+    
 } Member;
 
 
@@ -56,12 +57,14 @@ typedef struct {
     int prep_level;
     Member *members;
     int members_count;
+    float heat[NUM_TARGETS]; // Heat level for each target
 } Gang;
 
 // Target struct
 typedef struct {
     TargetType type;
     char name[32];
+    int heat; // this heat level is different from the gang's heat, it's how hot (pursued) the target is
     double weights[NUM_ATTRIBUTES];
 } Target;
 
