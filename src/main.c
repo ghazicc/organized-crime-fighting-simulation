@@ -37,14 +37,14 @@ int main(int argc,char *argv[]) {
         return 1;
     }
 
+    // Main process is the owner of shared memory
+    shared_game = setup_shared_memory_owner(&config);
+    
+    // Load targets AFTER initializing shared memory
     if (load_targets_from_json(JSON_PATH, shared_game->targets) == -1) {
         printf("Json file failed");
         return 1;
     }
-
-
-    // Main process is the owner of shared memory
-    shared_game = setup_shared_memory_owner(&config);
 
     signal(SIGALRM,handle_alarm);
     signal(SIGINT ,handle_kill);

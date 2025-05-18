@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <pthread.h>
+#include <stdint.h>
 
 
 typedef enum {
