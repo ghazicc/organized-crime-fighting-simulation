@@ -38,13 +38,14 @@ typedef struct {
     int member_id;  // Unique ID for each member
     int gang_id;    // ID of the gang this member belongs to
     int rank;       // Rank of the member in the gang
+    int XP;        // Experience points of the member
     int prep_contribution;
     int8_t agent_id; // ID of the agent (if any)
     float knowledge; // Knowledge level of the member
     float suspicion; // Suspicion level of the agent
     float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
-    AttributeType attributes[NUM_ATTRIBUTES];
+    float attributes[NUM_ATTRIBUTES];
 } Member;
 
 

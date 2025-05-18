@@ -16,6 +16,7 @@
 #include "shared_mem_utils.h"
 Game *shared_game = NULL;
 Gang *gang;
+int highest_rank_member_id = -1;
 
 void cleanup();
 void handle_sigint(int signum);
@@ -80,15 +81,20 @@ int main(int argc, char *argv[]) {
         gang->members[i].agent_id = -1;
         gang->members[i].suspicion = 0.0f;
 
+        // Initialize attributes
+        for (int j = 0; j < NUM_ATTRIBUTES; j++) {
+            gang->members[i].attributes[j] = (rand() % 100)/100.0; // Random values for attributes
+        }
+
         // CRITICAL: Allocate memory for thread argument to avoid data race
-        Member *thread_arg = malloc(sizeof(Member));
+        Member *thread_arg = &gang->members[i];
         if (thread_arg == NULL) {
             fprintf(stderr, "Failed to allocate memory for thread argument\n");
             exit(EXIT_FAILURE);
         }
 
         // Copy the member data to the allocated memory
-        *thread_arg = gang->members[i];
+        // *thread_arg = gang->members[i];
 
         // Create thread for each member
         int ret;
