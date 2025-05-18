@@ -77,8 +77,8 @@ int main(int argc, char *argv[]) {
         gang->members[i].member_id = i;
         gang->members[i].rank = rand() % config.num_ranks;
         gang->members[i].prep_contribution = 0;
-        gang->members[i].is_agent = (rand() % 100) < (config.agent_success_rate * 100);
-        gang->members[i].suspicion_level = 0.0f;
+        gang->members[i].agent_id = -1;
+        gang->members[i].suspicion = 0.0f;
 
         // CRITICAL: Allocate memory for thread argument to avoid data race
         Member *thread_arg = malloc(sizeof(Member));
@@ -93,13 +93,10 @@ int main(int argc, char *argv[]) {
         // Create thread for each member
         int ret;
         pthread_t thread_id;
-        if(gang->members[i].is_agent) {
-            printf("Creating secret agent thread %d\n", i);
-            ret = pthread_create(&thread_id, NULL, secret_agent_thread_function, thread_arg);
-        } else {
-            printf("Creating gang member thread %d\n", i);
-            ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
-        }
+        
+        printf("Creating gang member thread %d\n", i);
+        ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
+        
 
         gang->members[i].thread = thread_id;
 
