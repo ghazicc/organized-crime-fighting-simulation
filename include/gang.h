@@ -57,6 +57,7 @@ typedef struct {
     int prep_level;
     Member *members;
     int members_count;
+    float notoriety; // Notoriety level of the gang
     float heat[NUM_TARGETS]; // Heat level for each target
 } Gang;
 
