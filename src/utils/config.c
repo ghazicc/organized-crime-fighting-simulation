@@ -164,7 +164,7 @@ int check_parameter_correctness(const Config *config) {
 }
 
 void serialize_config(Config *config, char *buffer) {
-    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f",
+    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d",
             config->max_thwarted_plans,
             config->max_successful_plans,
             config->max_executed_agents,
@@ -187,7 +187,7 @@ void serialize_config(Config *config, char *buffer) {
 }
 
 void deserialize_config(const char *buffer, Config *config) {
-    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f",
+    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d",
             &config->max_thwarted_plans,
             &config->max_successful_plans,
             &config->max_executed_agents,
