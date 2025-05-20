@@ -3,18 +3,98 @@
 #include <unistd.h> // For sleep()
 #include "actual_gang_member.h"
 #include "gang.h" // For Member struct
+#include "success_rate.h" // For success rate calculation
+#include "config.h"
+#include "target_selection.h"
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
     fflush(stdout);
     Member *member = (Member*)arg;
+    Gang *gang = &shared_game->gangs[member->gang_id];
     printf("Gang member %d in gang %d started\n", member->member_id, member->gang_id);
     fflush(stdout);
     
-    // Add a slight delay to see if this thread runs
-    sleep(2);
-    printf("Gang member thread still running after delay\n");
-    fflush(stdout);
+    // Check if this is the highest-ranked member in the gang
+    if (member->member_id == highest_rank_member_id) {
+        printf("Gang %d: Member %d is the highest-ranked member (rank %d) - selecting target\n",
+               member->gang_id, member->member_id, member->rank);
+        fflush(stdout);
+        
+        // Let the highest-ranked member select a target
+        TargetType selected_target = select_target(shared_game, gang, member->member_id);
+        
+        // Set preparation parameters based on the selected target
+        set_preparation_parameters(gang, selected_target, NULL); // We'll need to pass config later
+        
+        // Reset all members' preparation levels
+        reset_preparation_levels(gang);
+        
+        printf("Gang %d: Target selected by highest-ranked member, type: %d, prep time: %d, prep level: %d\n",
+               member->gang_id, gang->target_type, gang->prep_time, gang->prep_level);
+        fflush(stdout);
+    }
+    
+    // Regular member behavior
+    while (1) {
+        // Simulate member contributing to preparation
+        member->prep_contribution += rand() % 10;
+        
+        printf("Gang %d, Member %d: Preparation contribution now %d\n", 
+               member->gang_id, member->member_id, member->prep_contribution);
+        fflush(stdout);
+        
+        // Sleep for a random time (1-3 seconds)
+        sleep(rand() % 3 + 1);
+        
+        // Check if preparation is complete
+        if (member->prep_contribution >= gang->prep_level) {
+            printf("Gang %d, Member %d: Reached required preparation level %d\n",
+                   member->gang_id, member->member_id, gang->prep_level);
+            fflush(stdout);
+            
+            // Lock the gang mutex to update shared state
+            pthread_mutex_lock(&gang->gang_mutex);
+            
+            // Increment ready members count
+            gang->members_ready++;
+            printf("Gang %d: Member %d is ready. %d/%d members ready\n", 
+                   gang->gang_id, member->member_id, gang->members_ready, gang->members_count);
+            fflush(stdout);
+            
+            // If this is the last member to complete preparation
+            if (gang->members_ready == gang->members_count) {
+                printf("Gang %d: All members ready! Signaling preparation complete to main thread\n", gang->gang_id);
+                fflush(stdout);
+                
+                // Signal that all members are ready - the main thread will determine success
+                pthread_cond_broadcast(&gang->prep_complete_cond);
+            }
+            
+            // Wait for the main thread to determine plan success
+            if (gang->plan_success == 0) {  // Plan success not determined yet
+                printf("Gang %d: Member %d waiting for main thread to determine plan outcome\n", 
+                       gang->gang_id, member->member_id);
+                fflush(stdout);
+                
+                // Wait for plan execution result from main thread
+                pthread_cond_wait(&gang->plan_execute_cond, &gang->gang_mutex);
+            }
+            
+            // React to plan success or failure
+            if (gang->plan_success == 1) {
+                printf("Gang %d: Member %d celebrating successful plan!\n", 
+                       gang->gang_id, member->member_id);
+            } else {
+                printf("Gang %d: Member %d disappointed about failed plan...\n", 
+                       gang->gang_id, member->member_id);
+            }
+            
+            // Unlock the mutex
+            pthread_mutex_unlock(&gang->gang_mutex);
+            break;
+        }
+    }
     
     return NULL; // Return properly
 }

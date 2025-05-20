@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <pthread.h>
+#include <stdint.h>
 
 
 typedef enum {
@@ -17,7 +18,7 @@ typedef enum {
     TARGET_KIDNAPPING,
     TARGET_BLACKMAIL,
     TARGET_ARMS_TRAFFICKING,
-    TARGET_NUM
+    NUM_TARGETS
 } TargetType;
 
 
@@ -37,11 +38,15 @@ typedef struct {
     int member_id;  // Unique ID for each member
     int gang_id;    // ID of the gang this member belongs to
     int rank;       // Rank of the member in the gang
+    int XP;        // Experience points of the member
     int prep_contribution;
-    bool is_agent;
-    float suspicion_level; // Suspicion level of the agent
+    int8_t agent_id; // ID of the agent (if any)
+    float knowledge; // Knowledge level of the member
+    float suspicion; // Suspicion level of the agent
+    float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
-    AttributeType attributes[NUM_ATTRIBUTES];
+    float attributes[NUM_ATTRIBUTES];
+    
 } Member;
 
 
@@ -52,12 +57,27 @@ typedef struct {
     int prep_level;
     Member *members;
     int members_count;
+    int num_successful_plans; // Number of successful plans
+    int num_thwarted_plans; // Number of thwarted plans
+    int num_executed_agents; // Number of executed agents
+    int num_agents; // Number of agents in the gang
+    float notoriety; // Notoriety level of the gang
+    float heat[NUM_TARGETS]; // Heat level for each target
+    
+    // Synchronization variables
+    pthread_mutex_t gang_mutex;          // Mutex for accessing gang data
+    pthread_cond_t prep_complete_cond;   // Condition variable to signal preparation completion
+    pthread_cond_t plan_execute_cond;    // Condition variable to signal plan execution
+    int members_ready;                   // Count of members who have completed preparation
+    int plan_success;                    // Whether the plan succeeded (0=not determined, 1=success, -1=failure)
+    int plan_in_progress;                // Whether a plan is currently in progress
 } Gang;
 
 // Target struct
 typedef struct {
     TargetType type;
     char name[32];
+    int heat; // this heat level is different from the gang's heat, it's how hot (pursued) the target is
     double weights[NUM_ATTRIBUTES];
 } Target;
 
