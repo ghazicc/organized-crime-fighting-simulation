@@ -63,6 +63,14 @@ typedef struct {
     int num_agents; // Number of agents in the gang
     float notoriety; // Notoriety level of the gang
     float heat[NUM_TARGETS]; // Heat level for each target
+    
+    // Synchronization variables
+    pthread_mutex_t gang_mutex;          // Mutex for accessing gang data
+    pthread_cond_t prep_complete_cond;   // Condition variable to signal preparation completion
+    pthread_cond_t plan_execute_cond;    // Condition variable to signal plan execution
+    int members_ready;                   // Count of members who have completed preparation
+    int plan_success;                    // Whether the plan succeeded (0=not determined, 1=success, -1=failure)
+    int plan_in_progress;                // Whether a plan is currently in progress
 } Gang;
 
 // Target struct
