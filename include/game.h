@@ -17,7 +17,7 @@ typedef struct Game {
     int total_gangs; // Number of gangs currently in the game
 
     // Target definitions
-    Target targets[TARGET_NUM];
+    Target targets[NUM_TARGETS];
 
 } Game;
 
