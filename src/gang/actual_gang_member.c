@@ -3,6 +3,9 @@
 #include <unistd.h> // For sleep()
 #include "actual_gang_member.h"
 #include "gang.h" // For Member struct
+#include "success_rate.h" // For success rate calculation
+#include "config.h"
+#include "target_selection.h"
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
@@ -49,6 +52,46 @@ void* actual_gang_member_thread_function(void* arg) {
             printf("Gang %d, Member %d: Reached required preparation level %d\n",
                    member->gang_id, member->member_id, gang->prep_level);
             fflush(stdout);
+            
+            // Lock the gang mutex to update shared state
+            pthread_mutex_lock(&gang->gang_mutex);
+            
+            // Increment ready members count
+            gang->members_ready++;
+            printf("Gang %d: Member %d is ready. %d/%d members ready\n", 
+                   gang->gang_id, member->member_id, gang->members_ready, gang->members_count);
+            fflush(stdout);
+            
+            // If this is the last member to complete preparation
+            if (gang->members_ready == gang->members_count) {
+                printf("Gang %d: All members ready! Signaling preparation complete to main thread\n", gang->gang_id);
+                fflush(stdout);
+                
+                // Signal that all members are ready - the main thread will determine success
+                pthread_cond_broadcast(&gang->prep_complete_cond);
+            }
+            
+            // Wait for the main thread to determine plan success
+            if (gang->plan_success == 0) {  // Plan success not determined yet
+                printf("Gang %d: Member %d waiting for main thread to determine plan outcome\n", 
+                       gang->gang_id, member->member_id);
+                fflush(stdout);
+                
+                // Wait for plan execution result from main thread
+                pthread_cond_wait(&gang->plan_execute_cond, &gang->gang_mutex);
+            }
+            
+            // React to plan success or failure
+            if (gang->plan_success == 1) {
+                printf("Gang %d: Member %d celebrating successful plan!\n", 
+                       gang->gang_id, member->member_id);
+            } else {
+                printf("Gang %d: Member %d disappointed about failed plan...\n", 
+                       gang->gang_id, member->member_id);
+            }
+            
+            // Unlock the mutex
+            pthread_mutex_unlock(&gang->gang_mutex);
             break;
         }
     }
