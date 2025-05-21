@@ -46,6 +46,8 @@ typedef struct {
     float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
     float attributes[NUM_ATTRIBUTES];
+    float discretion;       // Ability to hide suspicion when asking questions
+    float shrewdness;       // Ability to extract information
     
 } Member;
 
