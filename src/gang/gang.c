@@ -65,11 +65,6 @@ int main(int argc, char *argv[]) {
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
 
-    // Initialize members_count if needed
-    if (gang->members_count == 0) {
-        gang->members_count = config.max_gang_size;
-    }
-    
     // Initialize synchronization primitives
     pthread_mutex_init(&gang->gang_mutex, NULL);
     pthread_cond_init(&gang->prep_complete_cond, NULL); // once all members are ready
@@ -220,5 +215,8 @@ void cleanup() {
             perror("munmap failed");
         }
     }
+}
+
+void gang_init() {
 
 }
