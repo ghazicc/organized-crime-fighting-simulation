@@ -15,4 +15,10 @@ typedef struct {
         int agent_id;
     } MessageContent;
 } Message;
+
+int create_message_queue(int key);
+int send_message(int msgid, Message *message);
+int receive_message(int msgid, Message *message, long mtype);
+int delete_message_queue(int msgid);
+
 #endif // BAKERY_MESSAGE_H
