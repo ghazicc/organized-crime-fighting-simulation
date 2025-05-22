@@ -64,7 +64,7 @@ Game* setup_shared_memory_owner(Config *cfg) {
     // Set up gang member pointers
     for (int i = 0; i < cfg->num_gangs; i++) {
         game->gangs[i].gang_id = i; // Pre-initialize gang IDs
-        game->gangs[i].members_count = random_float(cfg->min_gang_size, cfg->max_gang_size);
+        game->gangs[i].max_member_count = (int) random_float(cfg->min_gang_size, cfg->max_gang_size);
         game->gangs[i].members = (Member*)((char*)game->gangs +
                                        gangs_size + 
                                        i * cfg->max_gang_size * sizeof(Member));

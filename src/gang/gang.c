@@ -80,13 +80,14 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     
     // Initialize gang members
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         gang->members[i].gang_id = gang_id;
         gang->members[i].member_id = i;
         gang->members[i].rank = rand() % config.num_ranks;
         gang->members[i].prep_contribution = 0;
         gang->members[i].agent_id = -1;
         gang->members[i].suspicion = 0.0f;
+        gang->members[i].is_alive = true;
 
         // Initialize attributes
         for (int j = 0; j < NUM_ATTRIBUTES; j++) {
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Create threads for all gang members
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         // CRITICAL: Allocate memory for thread argument to avoid data race
         Member *thread_arg = &gang->members[i];
         if (thread_arg == NULL) {
@@ -146,9 +147,9 @@ int main(int argc, char *argv[]) {
     pthread_mutex_lock(&gang->gang_mutex);
     
     // Wait until all members are ready
-    while (gang->members_ready < gang->members_count) {
+    while (gang->members_ready < gang->max_member_count) {
         printf("Gang %d: Main thread waiting for members to complete preparation (%d/%d ready)\n", 
-               gang_id, gang->members_ready, gang->members_count);
+               gang_id, gang->members_ready, gang->max_member_count);
         fflush(stdout);
         
         // Wait for the condition that all members are ready
@@ -161,7 +162,7 @@ int main(int argc, char *argv[]) {
     
     // At this point we have the mutex locked and all members are ready
     printf("Gang %d: All members ready (%d/%d). Proceeding to calculate success rate.\n", 
-           gang_id, gang->members_ready, gang->members_count);
+           gang_id, gang->members_ready, gang->max_member_count);
     fflush(stdout);
     
     // All members are ready, calculate if the plan succeeds
@@ -191,7 +192,7 @@ int main(int argc, char *argv[]) {
     pthread_mutex_unlock(&gang->gang_mutex);
 
     // Wait for all threads to finish
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         pthread_join(gang->members[i].thread, NULL);
     }
 
