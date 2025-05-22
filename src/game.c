@@ -9,7 +9,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include "config.h"
 #include "unistd.h"
 
@@ -41,20 +40,6 @@ int game_init(Game *game, pid_t *processes, Config *config) {
         GANG_EXECUTABLE
     };
 
-
-    // Create police departments (one per N gangs)
-    int depts = ceil(game->num_gangs / GANGS_PER_DEPARTMENT);
-    for (int i = 0; i < depts; i++) {
-        int dept_pid = fork();
-        if (dept_pid == 0) {
-            // Police department code
-            int start_gang = i * GANGS_PER_DEPARTMENT;
-            int end_gang = min((i+1) * GANGS_PER_DEPARTMENT, game->num_gangs);
-            // police_department_function(start_gang, end_gang);
-            exit(0);
-        }
-        // police_dept_pids[i] = dept_pid;
-    }
 
 
     // gang processes

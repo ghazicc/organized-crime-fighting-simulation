@@ -62,8 +62,7 @@ Game* setup_shared_memory_owner(Config *cfg) {
     game->num_thwarted_plans = 0;
     game->num_successfull_plans = 0;
     game->num_executed_agents = 0;
-    game->total_gangs = 0;
-    
+
     // Set up pointers to dynamic parts
     game->gangs = (Gang*)((char*)game + sizeof(Game));
     

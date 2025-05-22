@@ -32,6 +32,9 @@ protected:
         config.min_level_prepare = -1;
         config.max_level_prepare = -1;
         config.death_probability = -1.0f;
+        config.difficulty_level = -1;
+        config.max_difficulty = -1;
+        config.timeout_period = -1;
     }
 
     void TearDown() override {
@@ -40,7 +43,7 @@ protected:
     }
 
     // Helper to create a test config file with specified content
-    void createTestConfigFile(const std::string& content) {
+    void createTestConfigFile(const std::string& content) const {
         std::ofstream file(test_config_path);
         file << content;
         file.close();
@@ -68,7 +71,8 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
         "max_level_prepare=12\n"
         "death_probability=0.4\n"
         "difficulty_level=0\n"
-        "max_difficulty=10\n";
+        "max_difficulty=10\n"
+        "timeout_period=5\n";
 
     createTestConfigFile(content);
 
@@ -98,6 +102,7 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
     EXPECT_FLOAT_EQ(config.death_probability, 0.4f);
     EXPECT_EQ(config.difficulty_level, 0);
     EXPECT_EQ(config.max_difficulty, 10);
+    EXPECT_EQ(config.timeout_period, 5);
 }
 
 // Test loading a non-existent config file
@@ -126,6 +131,9 @@ TEST_F(ConfigTest, ValidParameterCheck) {
     config.min_level_prepare = 4;
     config.max_level_prepare = 10;
     config.death_probability = 0.3f;
+    config.difficulty_level = 0;
+    config.max_difficulty = 10;
+    config.timeout_period = 10;
 
     int result = check_parameter_correctness(&config);
     EXPECT_EQ(result, 0);
