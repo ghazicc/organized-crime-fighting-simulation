@@ -6,6 +6,7 @@
 #include "stddef.h"
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <stdio.h>
 
 
 int create_message_queue(int key) {

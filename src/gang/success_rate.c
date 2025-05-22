@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "gang.h"
-#include "target_selection.h"
 #include "config.h"
 #include "game.h"
+#include "gang.h"
+#include "random.h"
+#include "target_selection.h"
 
 extern Game *shared_game;
 
@@ -59,7 +60,7 @@ bool determine_plan_success(Gang *gang, TargetType target_type, Config *config) 
     float success_rate = calculate_success_rate(gang, target_type, config);
     
     // Generate a random number from 0 to 100
-    float random_value = (float)rand() / RAND_MAX * 100.0f;
+    float random_value = random_float(0, 100);
     
     // The plan succeeds if the random value is less than the success rate
     bool success = random_value < success_rate;
