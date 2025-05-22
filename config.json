@@ -1,0 +1,67 @@
+{
+  "targets": {
+    "bank_robbery": {
+      "smartness": 0.10,
+      "stealth": 0.10,
+      "strength": 0.10,
+      "tech_skills": 0.40,
+      "bravery": 0.20,
+      "negotiation": 0.05,
+      "networking": 0.05
+    },
+    "jewelry_shop_robbery": {
+      "smartness": 0.10,
+      "stealth": 0.45,
+      "strength": 0.10,
+      "tech_skills": 0.20,
+      "bravery": 0.10,
+      "negotiation": 0.03,
+      "networking": 0.02
+    },
+    "drug_trafficking": {
+      "smartness": 0.10,
+      "stealth": 0.05,
+      "strength": 0.05,
+      "tech_skills": 0.05,
+      "bravery": 0.10,
+      "negotiation": 0.35,
+      "networking": 0.30
+    },
+    "art_theft": {
+      "smartness": 0.10,
+      "stealth": 0.50,
+      "strength": 0.05,
+      "tech_skills": 0.30,
+      "bravery": 0.02,
+      "negotiation": 0.02,
+      "networking": 0.01
+    },
+    "kidnapping": {
+      "smartness": 0.05,
+      "stealth": 0.05,
+      "strength": 0.25,
+      "tech_skills": 0.05,
+      "bravery": 0.30,
+      "negotiation": 0.25,
+      "networking": 0.05
+    },
+    "blackmail": {
+      "smartness": 0.10,
+      "stealth": 0.05,
+      "strength": 0.02,
+      "tech_skills": 0.18,
+      "bravery": 0.05,
+      "negotiation": 0.40,
+      "networking": 0.20
+    },
+    "arms_trafficking": {
+      "smartness": 0.10,
+      "stealth": 0.05,
+      "strength": 0.20,
+      "tech_skills": 0.05,
+      "bravery": 0.10,
+      "negotiation": 0.20,
+      "networking": 0.30
+    }
+  }
+}
