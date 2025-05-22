@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "gang.h"
-#include "target_selection.h"
 #include "config.h"
 #include "game.h"
+#include "gang.h"
 #include "random.h"
+#include "target_selection.h"
 
 extern Game *shared_game;
 
