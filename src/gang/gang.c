@@ -147,9 +147,9 @@ int main(int argc, char *argv[]) {
     pthread_mutex_lock(&gang->gang_mutex);
     
     // Wait until all members are ready
-    while (gang->members_ready < gang->max_member_count) {
+    while (gang->members_ready < gang->num_alive_members) {
         printf("Gang %d: Main thread waiting for members to complete preparation (%d/%d ready)\n", 
-               gang_id, gang->members_ready, gang->max_member_count);
+               gang_id, gang->members_ready, gang->num_alive_members);
         fflush(stdout);
         
         // Wait for the condition that all members are ready

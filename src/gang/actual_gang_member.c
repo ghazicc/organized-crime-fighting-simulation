@@ -59,11 +59,11 @@ void* actual_gang_member_thread_function(void* arg) {
             // Increment ready members count
             gang->members_ready++;
             printf("Gang %d: Member %d is ready. %d/%d members ready\n", 
-                   gang->gang_id, member->member_id, gang->members_ready, gang->members_count);
+                   gang->gang_id, member->member_id, gang->members_ready, gang->num_alive_members);
             fflush(stdout);
             
             // If this is the last member to complete preparation
-            if (gang->members_ready == gang->members_count) {
+            if (gang->members_ready == gang->num_alive_members) {
                 printf("Gang %d: All members ready! Signaling preparation complete to main thread\n", gang->gang_id);
                 fflush(stdout);
                 
