@@ -66,7 +66,7 @@ int load_targets_from_json(const char* filename, Target targets[]) {
     }
     
     // Initialize all targets with zeroed weights (in case some are missing from JSON)
-    for (int i = 0; i < TARGET_NUM; i++) {
+    for (int i = 0; i < NUM_TARGETS; i++) {
         targets[i].type = i;
         memset(targets[i].weights, 0, sizeof(double) * NUM_ATTRIBUTES);
     }

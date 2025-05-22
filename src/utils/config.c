@@ -30,6 +30,8 @@ int load_config(const char *filename, Config *config) {
     config->max_time_prepare = -1;
     config->min_level_prepare = -1;
     config->max_level_prepare = -1;
+    config->difficulty_level = -1;
+    config->max_difficulty = -1;
 
     // Buffer to hold each line from the configuration file
     char line[256];
@@ -61,6 +63,8 @@ int load_config(const char *filename, Config *config) {
             else if (strcmp(key, "min_level_prepare") == 0) config->min_level_prepare = (int)value;
             else if (strcmp(key, "max_level_prepare") == 0) config->max_level_prepare = (int)value;
             else if (strcmp(key, "death_probability") == 0) config->death_probability = value;
+            else if (strcmp(key, "difficulty_level") == 0) config->difficulty_level = (int)value;
+            else if (strcmp(key, "max_difficulty") == 0) config->max_difficulty = (int)value;
 
             else {
                 fprintf(stderr, "Unknown key: %s\n", key);
@@ -115,6 +119,8 @@ void print_config(Config *config) {
     printf("min_level_prepare: %d\n", config->min_level_prepare);
     printf("max_level_prepare: %d\n", config->max_level_prepare);
     printf("death_probability: %f\n", config->death_probability);
+    printf("difficulty_level: %d\n", config->difficulty_level);
+    printf("max_difficulty: %d\n", config->max_difficulty);
     fflush(stdout);
 }
 
@@ -126,7 +132,7 @@ int check_parameter_correctness(const Config *config) {
         config->prison_period < 0 || config->num_ranks < 0 ||
         config->min_time_prepare < 0 || config->max_time_prepare < 0 ||
         config->min_level_prepare < 0 || config->max_level_prepare < 0 ||
-        config->max_gang_size < 0) {
+        config->max_gang_size < 0 || config->difficulty_level < 0 || config->max_difficulty < 0) { 
         fprintf(stderr, "Integer values must be greater than or equal to 0\n");
         return -1;
     }
@@ -158,7 +164,7 @@ int check_parameter_correctness(const Config *config) {
 }
 
 void serialize_config(Config *config, char *buffer) {
-    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f",
+    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d",
             config->max_thwarted_plans,
             config->max_successful_plans,
             config->max_executed_agents,
@@ -175,11 +181,13 @@ void serialize_config(Config *config, char *buffer) {
             config->max_time_prepare,
             config->min_level_prepare,
             config->max_level_prepare,
-            config->death_probability);
+            config->death_probability,
+            config->difficulty_level,
+            config->max_difficulty);
 }
 
 void deserialize_config(const char *buffer, Config *config) {
-    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f",
+    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d",
             &config->max_thwarted_plans,
             &config->max_successful_plans,
             &config->max_executed_agents,
@@ -196,5 +204,7 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->max_time_prepare,
             &config->min_level_prepare,
             &config->max_level_prepare,
-            &config->death_probability);
+            &config->death_probability,
+            &config->difficulty_level,
+            &config->max_difficulty);
 }
