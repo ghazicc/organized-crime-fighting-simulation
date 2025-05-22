@@ -16,6 +16,7 @@
 #include "target_selection.h"
 #include "success_rate.h"  // For success rate calculation
 #include "shared_mem_utils.h"
+#include "random.h"  // For random number generation
 
 Game *shared_game = NULL;
 Gang *gang;
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
 
         // Initialize attributes
         for (int j = 0; j < NUM_ATTRIBUTES; j++) {
-            gang->members[i].attributes[j] = (rand() % 100)/100.0; // Random values for attributes
+            gang->members[i].attributes[j] = random_float(0, 1); // Random values for attributes
         }
     }
     
