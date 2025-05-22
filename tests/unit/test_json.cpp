@@ -10,7 +10,7 @@
 
 class JsonConfigTest : public ::testing::Test {
 protected:
-    Target targets[TARGET_NUM] = {};
+    Target targets[NUM_TARGETS] = {};
     const char* test_json_path = "test_config.json";
 
     void SetUp() override {
