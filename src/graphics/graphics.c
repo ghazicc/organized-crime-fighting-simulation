@@ -1,15 +1,17 @@
 
 #include "raylib.h"
 
-#include <stdio.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <string.h>
 
+#include "actual_gang_member.h"
 #include "config.h"
 #include "game.h"
-#include "gang.h"          /* للحصول على تعريف Gang / Member */
+#include "gang.h" /* للحصول على تعريف Gang / Member */
+#include "shared_mem_utils.h"
 
 /* ---------- نافذة & ألوان ------------------------------------ */
 #define WIN_W 1280
@@ -89,22 +91,22 @@ static void box_game(Rectangle r,const Game *g,const Config *c){
 /* ============================================================= */
 int main(int argc,char **argv)
 {
-    if(argc<3){
-        fprintf(stderr,"usage: %s <config.txt> /game_shm\n",argv[0]);
-        return 1;
-    }
+    // if(argc<3){
+    //     fprintf(stderr,"usage: %s <config.txt> /game_shm\n",argv[0]);
+    //     return 1;
+    // }
 
     /* --- قراءة ملف الإعدادات عبر الدالة الرسمية فى config.c --- */
     Config cfg={0};
-    if(load_config(argv[1], &cfg) != 0){
-        perror("config"); return 1;
-    }
+    deserialize_config(argv[1],&cfg);
 
-    /* --- ربط الذاكرة المشتركة للعبة (read-only) ---------------- */
-    int fd=shm_open(argv[2],O_RDONLY,0);
-    if(fd==-1){ perror("shm_open"); return 1; }
-    Game *g=mmap(NULL,sizeof(Game),PROT_READ,MAP_SHARED,fd,0);
-    if(g==MAP_FAILED){ perror("mmap"); return 1; }
+    // /* --- ربط الذاكرة المشتركة للعبة (read-only) ---------------- */
+    // int fd=shm_open(argv[2],O_RDONLY,0);
+    // if(fd==-1){ perror("shm_open"); return 1; }
+    // Game *g=mmap(NULL,sizeof(Game),PROT_READ,MAP_SHARED,fd,0);
+    // if(g==MAP_FAILED){ perror("mmap"); return 1; }
+
+    Game *g = setup_shared_memory_user(&cfg);
 
     /* --- نافذة Raylib ----------------------------------------- */
     InitWindow(WIN_W,WIN_H,"Organized Crime – Viewer");
@@ -123,6 +125,6 @@ int main(int argc,char **argv)
     }
 
     /* --- تنظيف ------------------------------------------------ */
-    munmap(g,sizeof(Game)); close(fd); CloseWindow();
+    CloseWindow();
     return 0;
 }

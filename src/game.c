@@ -46,7 +46,7 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
 
-    processes[cfg->max_gangs] = start_process(binary_paths[2], cfg, cfg->max_gangs); 
+    processes[cfg->max_gangs] = start_process(binary_paths[2], cfg, cfg->max_gangs);
 
     return 0;
 }
