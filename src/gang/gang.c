@@ -94,10 +94,43 @@ int main(int argc, char *argv[]) {
         gang->members[i].agent_id = -1;
         gang->members[i].suspicion = 0.0f;
 
-        // Initialize attributes
-        for (int j = 0; j < NUM_ATTRIBUTES; j++) {
-            gang->members[i].attributes[j] = random_float(0, 1); // Random values for attributes
-        }
+        // Set up means and standard deviations for attributes
+        float means[NUM_ATTRIBUTES] = {
+            0.5f,  // ATTR_SMARTNESS - centered around 0.5
+            0.5f,  // ATTR_STEALTH - centered around 0.5
+            0.5f,  // ATTR_STRENGTH - centered around 0.5
+            0.4f,  // ATTR_TECH_SKILLS - slightly lower mean
+            0.6f,  // ATTR_BRAVERY - slightly higher mean
+            0.5f,  // ATTR_NEGOTIATION - centered around 0.5
+            0.5f   // ATTR_NETWORKING - centered around 0.5
+        };
+        
+        float stddevs[NUM_ATTRIBUTES] = {
+            0.15f,  // ATTR_SMARTNESS
+            0.15f,  // ATTR_STEALTH
+            0.15f,  // ATTR_STRENGTH
+            0.20f,  // ATTR_TECH_SKILLS - more variance
+            0.15f,  // ATTR_BRAVERY
+            0.15f,  // ATTR_NEGOTIATION
+            0.15f   // ATTR_NETWORKING
+        };
+        
+        // Define correlation matrix between attributes
+        // For example, smartness correlates with tech skills, strength with bravery, etc.
+        float correlation_matrix[NUM_ATTRIBUTES][NUM_ATTRIBUTES] = {
+            // SMARTNESS  STEALTH    STRENGTH   TECH       BRAVERY    NEGOTIATION NETWORKING
+            {  0.2f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f  }, // SMARTNESS
+            {  0.1f,      0.2f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f  }, // STEALTH
+            {  0.0f,      0.0f,      0.2f,      0.0f,      0.0f,      0.0f,      0.0f  }, // STRENGTH
+            {  0.15f,     0.1f,      0.0f,      0.2f,      0.0f,      0.0f,      0.0f  }, // TECH_SKILLS
+            {  0.0f,      0.0f,      0.15f,     0.0f,      0.2f,      0.0f,      0.0f  }, // BRAVERY
+            {  0.1f,      0.0f,      0.0f,      0.0f,      0.0f,      0.2f,      0.0f  }, // NEGOTIATION
+            {  0.1f,      0.0f,      0.0f,      0.0f,      0.1f,      0.15f,     0.2f  }  // NETWORKING
+        };
+        
+        // Generate attributes using multivariate Gaussian distribution
+        printf("Gang %d: Generating correlated attributes for member %d\n", gang_id, i);
+        generate_multivariate_attributes(gang->members[i].attributes, means, stddevs, correlation_matrix);
     }
     
     // Find the member with the highest rank - but don't select target here
