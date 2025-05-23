@@ -97,8 +97,14 @@ int main(int argc,char **argv)
     // }
 
     /* --- قراءة ملف الإعدادات عبر الدالة الرسمية فى config.c --- */
-    Config cfg={0};
-    deserialize_config(argv[1],&cfg);
+    Config cfg;
+
+    // Load config first
+    if (load_config(CONFIG_PATH, &cfg) == -1) {
+        printf("Config file failed\n");
+        return 1;
+    }
+
 
     // /* --- ربط الذاكرة المشتركة للعبة (read-only) ---------------- */
     // int fd=shm_open(argv[2],O_RDONLY,0);

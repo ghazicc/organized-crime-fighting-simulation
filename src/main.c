@@ -10,7 +10,7 @@
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
-pid_t  processes[2];
+pid_t  processes[10];
 Config config;
 
 /* ----------------------------------------------------------- */
