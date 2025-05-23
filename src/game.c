@@ -33,7 +33,8 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     char *binary_paths[] = {
         POLICE_EXECUTABLE,
-        GANG_EXECUTABLE
+        GANG_EXECUTABLE,
+        GRAPHICS_EXECUTABLE
     };
 
     // police process
@@ -45,8 +46,12 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
 
+    processes[cfg->max_gangs] = start_process(binary_paths[2], cfg, cfg->max_gangs); 
+
     return 0;
 }
+
+    
 
 
 pid_t start_process(const char *binary, Config *cfg, int id) {
