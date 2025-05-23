@@ -23,14 +23,14 @@ float sum_array(const float *array, int size) {
 }
 
 int find_highest_ranked_member(Gang *gang) {
-    if (gang == NULL || gang->members_count <= 0) {
+    if (gang == NULL || gang->max_member_count <= 0) {
         return -1;
     }
 
     int highest_rank = -1;
     int highest_ranked_id = -1;
 
-    for (int i = 0; i < gang->members_count; i++) {
+    for (int i = 0; i < gang->max_member_count; i++) {
         if (gang->members[i].rank > highest_rank) {
             highest_rank = gang->members[i].rank;
             highest_ranked_id = i;
@@ -43,7 +43,7 @@ int find_highest_ranked_member(Gang *gang) {
 
 
 TargetType select_target(Game *game, Gang *gang, int highest_rank_member_id) {
-    if (game == NULL || gang == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->members_count) {
+    if (game == NULL || gang == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->max_member_count) {
         // Default to bank robbery if something's wrong
         return TARGET_BANK_ROBBERY;
     }
@@ -125,7 +125,7 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
 void reset_preparation_levels(Gang *gang) {
     if (gang == NULL) return;
     
-    for (int i = 0; i < gang->members_count; i++) {
+    for (int i = 0; i < gang->max_member_count; i++) {
         gang->members[i].prep_contribution = 0;
     }
     

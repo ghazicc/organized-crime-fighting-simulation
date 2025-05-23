@@ -25,6 +25,7 @@ typedef struct {
     float death_probability;
     int difficulty_level;
     int max_difficulty;
+    int num_gangs;
 } Config;
 
 int load_config(const char *filename, Config *config);
