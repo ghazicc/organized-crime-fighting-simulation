@@ -74,6 +74,56 @@ void secret_agent_ask_member(Game* shared_game,Member* agent,Member *target) {
 
     }
 
+void conduct_internal_investigation(Config config, Game* shared_game, int gang_id) {
+    Gang *gang = &shared_game->gangs[gang_id];
+    int max_rank = -1;
+    int investigator_idx = -1;
+
+    for (int i = 0; i < gang->members_count; i++) {
+        if (gang->members[i].rank > max_rank) {
+            max_rank = gang->members[i].rank;
+            investigator_idx = i;
+        }
+    }
+    if (investigator_idx == -1) {
+        printf("Gang %d has no members to conduct investigation\n", gang_id);
+        return;
+    }
+
+    Member* investigator = &gang->members[investigator_idx];
+
+    for (int gidx =0;gidx<gang->members_count;gidx++) {
+        Member *g = &gang->members[gidx];
+
+        if (g->agent_id>0) {
+            float suspicion_increase = investigator->shrewdness*g->suspicion;
+            g->suspicion += suspicion_increase;
+        }
+
+
+        for (int j = 0;j<g->askers_count;j++) {
+            int asker_id = g->askers[j];
+            for (int k = 0;k<gang->members_count;k++) {
+                Member *agent_candidate = &gang->members[k];
+                if (agent_candidate->member_id == asker_id) {
+                    float suspicion_increase = investigator->shrewdness * (1.0f - g->suspicion);
+                    agent_candidate->suspicion += suspicion_increase;
+                }
+            }
+
+        }
+    }
+
+    for (int i = 0;i<gang->members_count;i++) {
+        Member *m = &gang->members[i];
+        if (m->agent_id>0 && m->suspicion > config.suspicion_threshold) {
+            shared_game->num_executed_agents++;
+
+        }
+    }
+
+}
+
 
 
 
