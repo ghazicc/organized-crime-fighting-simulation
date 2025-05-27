@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <stdint.h>
-#define MAX_ASKERS
+#define MAX_ASKERS 20
 
 typedef enum {
     TARGET_BANK_ROBBERY,
@@ -49,6 +49,7 @@ typedef struct {
     float discretion;       // Ability to hide suspicion when asking questions
     float shrewdness;       // Ability to extract information
     int askers[MAX_ASKERS];
+    int askers_count;
     
 } Member;
 
