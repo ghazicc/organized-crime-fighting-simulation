@@ -25,6 +25,7 @@ typedef struct {
     float death_probability;
     int difficulty_level;
     int max_difficulty;
+    int max_askers;         // Maximum number of members that can ask a secret agent
 } Config;
 
 int load_config(const char *filename, Config *config);
