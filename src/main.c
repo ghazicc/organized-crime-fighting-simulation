@@ -6,6 +6,7 @@
 #include "json/json-config.h"
 #include "game.h"
 #include "shared_mem_utils.h"
+#include "random.h"
 
 
 /* globals from your original code --------------------------- */
@@ -31,11 +32,23 @@ int main(int argc,char *argv[]) {
 
     atexit(cleanup_resources);
     
+    // Initialize random number generator
+    init_random();
+    
     // Load config first
     if (load_config(CONFIG_PATH, &config) == -1) {
         printf("Config file failed\n"); 
         return 1;
     }
+
+    
+
+
+    // randomize the number of gangs based on the user-defined range
+
+    config.num_gangs = (int) random_float(config.min_gangs, config.max_gangs); 
+
+    printf("Number of gangs: %d\n", config.num_gangs);
 
     // Main process is the owner of shared memory
     shared_game = setup_shared_memory_owner(&config);

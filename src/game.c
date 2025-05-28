@@ -23,14 +23,14 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     // Initialize pointers to dynamic parts
     game->gangs = (Gang*)((char*)game + sizeof(Game));
-    cfg->num_gangs = (int) random_float(cfg->min_gangs, cfg->max_gangs);  // Updated as gangs spawn
+ // Updated as gangs spawn
 
-    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
+    size_t gangs_size = cfg->num_gangs * sizeof(Gang);
 
     // Initialize each Gang's member array
     for (int i = 0; i < cfg->num_gangs ; i++) {
         game->gangs[i].members = (Member*)((char*)game->gangs + gangs_size +
-                                        i * cfg->num_gangs * sizeof(Member));
+                                        i * cfg->max_gang_size * sizeof(Member));
     }
 
     char *binary_paths[] = {

@@ -44,11 +44,14 @@ int main(int argc, char *argv[]) {
 
 
 
-    // validate gang ID
-    if (gang_id < 0 || gang_id >= config.max_gangs) {
-        fprintf(stderr, "Invalid gang ID: %d\n", gang_id);
+    // validate gang ID - check against actual number of gangs, not max possible
+    if (gang_id < 0 || gang_id >= config.num_gangs) {
+        fprintf(stderr, "Invalid gang ID: %d (num_gangs: %d, max_gangs: %d)\n", gang_id, config.num_gangs, config.max_gangs);
         exit(EXIT_FAILURE);
     }
+    
+    printf("Gang %d: Validation passed (num_gangs: %d, max_gangs: %d)\n", gang_id, config.num_gangs, config.max_gangs);
+    fflush(stdout);
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
@@ -78,6 +81,12 @@ int main(int argc, char *argv[]) {
 
 
     printf("Gang %d process started...\n", gang_id);
+    fflush(stdout);
+
+    printf("gang 0 member count %d\n", shared_game->gangs[0].max_member_count);
+    fflush(stdout);
+    
+    printf("Gang %d: About to initialize %d members\n", gang_id, gang->max_member_count);
     fflush(stdout);
     
     // Initialize gang members
