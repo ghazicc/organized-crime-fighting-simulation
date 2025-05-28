@@ -9,6 +9,7 @@
 
 void init_random();
 float random_float(float min, float max);
+int random_int(int min, int max);
 
 // Box-Muller transform to generate univariate normal distribution
 float random_normal(float mean, float stddev);

@@ -59,4 +59,9 @@ void generate_multivariate_attributes(float* attributes, const float* means, con
         if (attributes[i] < 0.0f) attributes[i] = 0.0f;
         if (attributes[i] > 1.0f) attributes[i] = 1.0f;
     }
+
+}
+
+int random_int(int min, int max) {
+    return min + rand() % (max - min + 1);
 }
