@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "gang.h"
-#include "target_selection.h"
 #include "config.h"
 #include "game.h"
+#include "gang.h"
+#include "random.h"
+#include "target_selection.h"
 
 extern Game *shared_game;
 
@@ -20,9 +21,12 @@ float calculate_success_rate(Gang *gang, TargetType target_type, Config *config)
     
     // Calculate the attribute sum portion: ∑W(T)·Ai / |G|
     float success_rate = 0.0f;
-    for (int i = 0; i < gang->members_count; i++) {
+    for (int i = 0; i < gang->max_member_count; i++) {
         // For each member, calculate dot product of their attributes with target weights
-        
+
+        if (!gang->members[i].is_alive) {
+            continue;
+        }
 
         // calculate attribute factor
         float dot_product = calculate_dot_product(gang->members[i].attributes, 
@@ -41,7 +45,7 @@ float calculate_success_rate(Gang *gang, TargetType target_type, Config *config)
 
     float difficulty_factor = (1.0f + (config->difficulty_level * 1.0) / config->max_difficulty);
     
-    success_rate /= (gang->members_count * difficulty_factor * difficulty_factor); // Average over all members
+    success_rate /= (gang->max_member_count * difficulty_factor * difficulty_factor); // Average over all members
 
     // Clamp to 0-100 range
     if (success_rate < 0.0f) success_rate = 0.0f;
@@ -59,7 +63,7 @@ bool determine_plan_success(Gang *gang, TargetType target_type, Config *config) 
     float success_rate = calculate_success_rate(gang, target_type, config);
     
     // Generate a random number from 0 to 100
-    float random_value = (float)rand() / RAND_MAX * 100.0f;
+    float random_value = random_float(0, 100);
     
     // The plan succeeds if the random value is less than the success rate
     bool success = random_value < success_rate;

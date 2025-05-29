@@ -36,6 +36,7 @@ typedef enum {
 
 typedef struct {
     int member_id;  // Unique ID for each member
+    bool is_alive;  // Whether the member is alive or not
     int gang_id;    // ID of the gang this member belongs to
     int rank;       // Rank of the member in the gang
     int XP;        // Experience points of the member
@@ -50,7 +51,7 @@ typedef struct {
     float shrewdness;       // Ability to extract information
     int askers[MAX_ASKERS];
     int askers_count;
-    
+
 } Member;
 
 
@@ -60,7 +61,8 @@ typedef struct {
     int prep_time;
     int prep_level;
     Member *members;
-    int members_count;
+    int num_alive_members; // Number of alive members in the gang
+    int max_member_count; // max number of members
     int num_successful_plans; // Number of successful plans
     int num_thwarted_plans; // Number of thwarted plans
     int num_executed_agents; // Number of executed agents

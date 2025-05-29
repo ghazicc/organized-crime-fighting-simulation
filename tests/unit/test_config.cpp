@@ -66,7 +66,9 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
         "max_time_prepare=12\n"
         "min_level_prepare=5\n"
         "max_level_prepare=12\n"
-        "death_probability=0.4\n";
+        "death_probability=0.4\n"
+        "difficulty_level=0\n"
+        "max_difficulty=10\n";
 
     createTestConfigFile(content);
 
@@ -94,6 +96,8 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
     EXPECT_EQ(config.min_level_prepare, 5);
     EXPECT_EQ(config.max_level_prepare, 12);
     EXPECT_FLOAT_EQ(config.death_probability, 0.4f);
+    EXPECT_EQ(config.difficulty_level, 0);
+    EXPECT_EQ(config.max_difficulty, 10);
 }
 
 // Test loading a non-existent config file
