@@ -136,7 +136,19 @@ int main(int argc, char *argv[]) {
         // Generate attributes using multivariate Gaussian distribution
         printf("Gang %d: Generating correlated attributes for member %d\n", gang_id, i);
         generate_multivariate_attributes(gang->members[i].attributes, means, stddevs, correlation_matrix);
+        
+        // Initialize information spreading system for this member
+        initialize_member_knowledge(&gang->members[i], gang->members[i].rank, config.num_ranks - 1);
     }
+    
+    // Initialize gang-level information spreading parameters
+    gang->last_info_spread_time = 0;
+    gang->info_spread_interval = random_int(3, 8); // Initial random interval
+    gang->leader_misinformation_chance = random_float(0.05f, 0.20f); // 5-20% chance of misinformation
+    
+    printf("Gang %d: Information spreading initialized - interval: %d, leader misinformation chance: %.2f\n",
+           gang_id, gang->info_spread_interval, gang->leader_misinformation_chance);
+    fflush(stdout);
     
     // Find the member with the highest rank - but don't select target here
     // Target selection will happen in the highest-ranked member's thread
@@ -234,6 +246,13 @@ int main(int argc, char *argv[]) {
     pthread_cond_broadcast(&gang->plan_execute_cond);
     pthread_mutex_unlock(&gang->gang_mutex);
 
+    // Trigger information spreading after plan execution
+    int current_time = shared_game->elapsed_time; // Use game time or implement time tracking
+    printf("Gang %d: Triggering information spreading at time %d\n", gang_id, current_time);
+    fflush(stdout);
+    
+    spread_information_in_gang(gang, current_time, highest_rank_member_id);
+    
     // Wait for all threads to finish
     for(int i = 0; i < gang->max_member_count; i++) {
         pthread_join(gang->members[i].thread, NULL);
