@@ -7,11 +7,14 @@
 #include "config.h"
 #include "target_selection.h"
 
+extern ShmPtrs shm_ptrs;
+extern int highest_rank_member_id;
+
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
     fflush(stdout);
     Member *member = (Member*)arg;
-    Gang *gang = &shared_game->gangs[member->gang_id];
+    Gang *gang = &shm_ptrs.gangs[member->gang_id];
     printf("Gang member %d in gang %d started\n", member->member_id, member->gang_id);
     fflush(stdout);
     
@@ -22,18 +25,22 @@ void* actual_gang_member_thread_function(void* arg) {
         fflush(stdout);
         
         // Let the highest-ranked member select a target
-        TargetType selected_target = select_target(shared_game, gang, member->member_id);
+        TargetType selected_target = select_target(shm_ptrs.shared_game, gang, shm_ptrs.gang_members[member->gang_id], highest_rank_member_id);
         
         // Set preparation parameters based on the selected target
         set_preparation_parameters(gang, selected_target, NULL); // We'll need to pass config later
         
         // Reset all members' preparation levels
-        reset_preparation_levels(gang);
+        reset_preparation_levels(gang, shm_ptrs.gang_members[member->gang_id]);
         
         printf("Gang %d: Target selected by highest-ranked member, type: %d, prep time: %d, prep level: %d\n",
                member->gang_id, gang->target_type, gang->prep_time, gang->prep_level);
         fflush(stdout);
     }
+    
+    printf("Gang %d, Member %d: Starting regular preparation loop\n", 
+           member->gang_id, member->member_id);
+    fflush(stdout);
     
     // Regular member behavior
     while (1) {

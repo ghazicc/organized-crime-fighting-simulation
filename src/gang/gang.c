@@ -19,7 +19,9 @@
 #include "random.h"  // For random number generation
 
 Game *shared_game = NULL;
+ShmPtrs shm_ptrs;
 Gang *gang;
+Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
 
 void cleanup();
@@ -56,15 +58,28 @@ int main(int argc, char *argv[]) {
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
 
+    // Initialize random number generator for this process
+    init_random();
+    printf("Gang %d: Random number generator initialized\n", gang_id);
+    fflush(stdout);
+
     // Gang process is a user of shared memory, not the owner
-    shared_game = setup_shared_memory_user(&config);
+    shared_game = setup_shared_memory_user(&config, &shm_ptrs);
+    shm_ptrs.shared_game = shared_game;
 
     // Print the base address of shared memory for debugging
     printf("Gang %d: Shared memory mapped at %p\n", gang_id, (void*)shared_game);
     fflush(stdout);
 
-    // Assign gang struct
-    gang = &shared_game->gangs[gang_id];
+    // Assign gang struct using ShmPtrs
+    gang = &shm_ptrs.gangs[gang_id];
+    
+    // Set up local pointer to this gang's members
+    members = shm_ptrs.gang_members[gang_id];
+    
+    printf("Gang %d: Gang struct at %p, Members array at %p\n", 
+           gang_id, (void*)gang, (void*)members);
+    fflush(stdout);
 
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
@@ -83,7 +98,7 @@ int main(int argc, char *argv[]) {
     printf("Gang %d process started...\n", gang_id);
     fflush(stdout);
 
-    printf("gang 0 member count %d\n", shared_game->gangs[0].max_member_count);
+    printf("gang 0 member count %d\n", shm_ptrs.gangs[0].max_member_count);
     fflush(stdout);
     
     printf("Gang %d: About to initialize %d members\n", gang_id, gang->max_member_count);
@@ -91,13 +106,16 @@ int main(int argc, char *argv[]) {
     
     // Initialize gang members
     for(int i = 0; i < gang->max_member_count; i++) {
-        gang->members[i].gang_id = gang_id;
-        gang->members[i].member_id = i;
-        gang->members[i].rank = rand() % config.num_ranks;
-        gang->members[i].prep_contribution = 0;
-        gang->members[i].agent_id = -1;
-        gang->members[i].suspicion = 0.0f;
-        gang->members[i].is_alive = true;
+        printf("Gang %d: Initializing member %d basic properties\n", gang_id, i);
+        fflush(stdout);
+        
+        members[i].gang_id = gang_id;
+        members[i].member_id = i;
+        members[i].rank = rand() % config.num_ranks;
+        members[i].prep_contribution = 0;
+        members[i].agent_id = -1;
+        members[i].suspicion = 0.0f;
+        members[i].is_alive = true;
 
         // Set up means and standard deviations for attributes
         float means[NUM_ATTRIBUTES] = {
@@ -135,19 +153,39 @@ int main(int argc, char *argv[]) {
         
         // Generate attributes using multivariate Gaussian distribution
         printf("Gang %d: Generating correlated attributes for member %d\n", gang_id, i);
-        generate_multivariate_attributes(gang->members[i].attributes, means, stddevs, correlation_matrix);
+        fflush(stdout);
+        generate_multivariate_attributes(members[i].attributes, means, stddevs, correlation_matrix);
+        
+        // Initialize member knowledge for information spreading
+        initialize_member_knowledge(&members[i], members[i].rank, config.num_ranks - 1);
+        
+        printf("Gang %d: Member %d initialized successfully\n", gang_id, i);
+        fflush(stdout);
     }
+    
+    // Initialize gang-level information spreading parameters
+    gang->last_info_spread_time = 0;
+    gang->info_spread_interval = random_int(3, 8); // Initial random interval
+    gang->leader_misinformation_chance = random_float(0.05f, 0.20f); // 5-20% chance of misinformation
+    
+    printf("Gang %d: Information spreading initialized - interval: %d, leader misinformation chance: %.2f\n",
+           gang_id, gang->info_spread_interval, gang->leader_misinformation_chance);
+    fflush(stdout);
     
     // Find the member with the highest rank - but don't select target here
     // Target selection will happen in the highest-ranked member's thread
-    highest_rank_member_id = find_highest_ranked_member(gang);
+    highest_rank_member_id = find_highest_ranked_member(gang, members);
     if (highest_rank_member_id >= 0) {
         printf("Gang %d highest ranked member is member %d with rank %d\n", 
-            gang_id, highest_rank_member_id, gang->members[highest_rank_member_id].rank);
+            gang_id, highest_rank_member_id, members[highest_rank_member_id].rank);
         fflush(stdout);
         
         // make the highest ranked member have the highest rank
-        gang->members[highest_rank_member_id].rank = config.num_ranks - 1;
+        members[highest_rank_member_id].rank = config.num_ranks - 1;
+        
+        printf("Gang %d: Updated highest ranked member %d to rank %d\n", 
+            gang_id, highest_rank_member_id, members[highest_rank_member_id].rank);
+        fflush(stdout);
     } else {
         printf("Gang %d has no members to select a target\n", gang_id);
         fflush(stdout);
@@ -155,16 +193,9 @@ int main(int argc, char *argv[]) {
 
     // Create threads for all gang members
     for(int i = 0; i < gang->max_member_count; i++) {
-        // CRITICAL: Allocate memory for thread argument to avoid data race
-        Member *thread_arg = &gang->members[i];
-        if (thread_arg == NULL) {
-            fprintf(stderr, "Failed to allocate memory for thread argument\n");
-            exit(EXIT_FAILURE);
-        }
-
-        // Copy the member data to the allocated memory
-        // *thread_arg = gang->members[i];
-
+        // Pass the member from the local members array
+        Member *thread_arg = &members[i];
+        
         // Create thread for each member
         int ret;
         pthread_t thread_id;
@@ -172,7 +203,7 @@ int main(int argc, char *argv[]) {
         printf("Creating gang member thread %d\n", i);
         ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
         
-        gang->members[i].thread = thread_id;
+        members[i].thread = thread_id;
 
         if (ret != 0) {
             fprintf(stderr, "Failed to create thread: %d\n", ret);
@@ -213,7 +244,7 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     
     // Calculate if the plan succeeds
-    gang->plan_success = determine_plan_success(gang, gang->target_type, &config) ? 1 : -1;
+    gang->plan_success = determine_plan_success(gang, members, gang->target_type, &config) ? 1 : -1;
     
     printf("Gang %d: Plan %s! Main thread signaling all members\n", 
            gang_id, gang->plan_success == 1 ? "SUCCEEDED" : "FAILED");
@@ -222,21 +253,28 @@ int main(int argc, char *argv[]) {
     // Update gang statistics
     if (gang->plan_success == 1) {
         gang->num_successful_plans++;
-        shared_game->num_successfull_plans++;
+        shm_ptrs.shared_game->num_successfull_plans++;
         printf("Gang %d: Notoriety increased after successful plan\n", gang_id);
         gang->notoriety += 0.1f;  // Increase notoriety on success
     } else {
         gang->num_thwarted_plans++;
-        shared_game->num_thwarted_plans++;
+        shm_ptrs.shared_game->num_thwarted_plans++;
     }
     
     // Signal all waiting members about the plan execution result
     pthread_cond_broadcast(&gang->plan_execute_cond);
     pthread_mutex_unlock(&gang->gang_mutex);
 
+    // Trigger information spreading after plan execution
+    int current_time = shared_game->elapsed_time; // Use game time or implement time tracking
+    printf("Gang %d: Triggering information spreading at time %d\n", gang_id, current_time);
+    fflush(stdout);
+    
+    spread_information_in_gang(gang, members, current_time, highest_rank_member_id);
+    
     // Wait for all threads to finish
     for(int i = 0; i < gang->max_member_count; i++) {
-        pthread_join(gang->members[i].thread, NULL);
+        pthread_join(members[i].thread, NULL);
     }
 
     // Cleanup resources

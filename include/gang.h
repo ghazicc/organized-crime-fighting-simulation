@@ -9,6 +9,20 @@
 #include <pthread.h>
 #include <stdint.h>
 
+// Information spreading system
+typedef enum {
+    INFO_CORRECT,
+    INFO_FALSE,
+    INFO_PARTIAL
+} InfoType;
+
+typedef struct {
+    InfoType type;
+    float accuracy;     // 0.0 to 1.0, how accurate the information is
+    int source_rank;    // Rank of the member who shared this info
+    int timestamp;      // When this info was shared
+} InformationPacket;
+
 
 typedef enum {
     TARGET_BANK_ROBBERY,
@@ -42,11 +56,16 @@ typedef struct {
     int XP;        // Experience points of the member
     int prep_contribution;
     int8_t agent_id; // ID of the agent (if any)
-    float knowledge; // Knowledge level of the member
+    float knowledge; // Knowledge level of the member (0.0 to 1.0)
     float suspicion; // Suspicion level of the agent
     float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
     float attributes[NUM_ATTRIBUTES];
+    
+    // Information spreading system
+    InformationPacket received_info[5]; // Last 5 pieces of information received
+    int info_count;                     // Number of information packets received
+    float misinformation_level;         // How much false info this member has (0.0 to 1.0)
 } Member;
 
 
@@ -55,7 +74,7 @@ typedef struct {
     int target_type;
     int prep_time;
     int prep_level;
-    Member *members;
+    // Note: members pointer is NOT stored in shared memory - it's calculated locally in each process
     int num_alive_members; // Number of alive members in the gang
     int max_member_count; // max number of members
     int num_successful_plans; // Number of successful plans
@@ -64,6 +83,11 @@ typedef struct {
     int num_agents; // Number of agents in the gang
     float notoriety; // Notoriety level of the gang
     float heat[NUM_TARGETS]; // Heat level for each target
+    
+    // Information spreading system
+    int last_info_spread_time;           // Last time information was spread
+    int info_spread_interval;            // Random interval for spreading info
+    float leader_misinformation_chance;  // Chance leader spreads false info
     
     // Synchronization variables
     pthread_mutex_t gang_mutex;          // Mutex for accessing gang data
@@ -81,5 +105,15 @@ typedef struct {
     int heat; // this heat level is different from the gang's heat, it's how hot (pursued) the target is
     double weights[NUM_ATTRIBUTES];
 } Target;
+
+// Information spreading function declarations
+void initialize_member_knowledge(Member* member, int rank, int max_rank);
+void spread_information_in_gang(Gang* gang, Member* members, int current_time, int leader_id);
+void leader_spread_information(Gang* gang, Member* members, int leader_id, int current_time);
+void update_member_knowledge_from_info(Member* member);
+InfoType determine_info_type(int source_rank, int target_rank, float misinformation_chance);
+float calculate_base_knowledge_by_rank(int rank, int max_rank);
+void share_information_between_members(Member* source, Member* target, int current_time);
+void add_information_to_member(Member* member, InfoType type, float accuracy, int source_rank, int timestamp);
 
 #endif //GANG_H

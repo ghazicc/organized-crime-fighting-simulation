@@ -11,6 +11,7 @@
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
+ShmPtrs shm_ptrs;
 pid_t  processes[2];
 Config config;
 
@@ -51,7 +52,8 @@ int main(int argc,char *argv[]) {
     printf("Number of gangs: %d\n", config.num_gangs);
 
     // Main process is the owner of shared memory
-    shared_game = setup_shared_memory_owner(&config);
+    shared_game = setup_shared_memory_owner(&config, &shm_ptrs);
+    shm_ptrs.shared_game = shared_game;
     
     // Load targets AFTER initializing shared memory
     if (load_targets_from_json(JSON_PATH, shared_game->targets) == -1) {

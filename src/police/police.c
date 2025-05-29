@@ -6,10 +6,13 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <unistd.h>  // For sleep()
 #include "config.h"
+#include "random.h"  // For random number generation
 
 #include "shared_mem_utils.h"
 Game *shared_game = NULL;
+ShmPtrs shm_ptrs;
 
 void cleanup();
 void handle_sigint(int signum);
@@ -33,8 +36,26 @@ int main(int argc, char *argv[]) {
 
     signal(SIGINT, handle_sigint);
 
+    // Initialize random number generator for this process
+    init_random();
+    printf("Police: Random number generator initialized\n");
+    fflush(stdout);
+
     // Police process is a user of shared memory, not the owner
-    shared_game = setup_shared_memory_user(&config);
+    shared_game = setup_shared_memory_user(&config, &shm_ptrs);
+    shm_ptrs.shared_game = shared_game;
+    
+    printf("Police process connected to shared memory successfully\n");
+    fflush(stdout);
+    
+    // Simple police main loop - just monitor for now
+    while (1) {
+        sleep(5); // Police monitors every 5 seconds
+        printf("Police: Monitoring gang activities...\n");
+        fflush(stdout);
+        
+        // TODO: Add police investigation logic here
+    }
 }
 
 
