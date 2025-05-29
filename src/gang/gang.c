@@ -254,11 +254,15 @@ int main(int argc, char *argv[]) {
     if (gang->plan_success == 1) {
         gang->num_successful_plans++;
         shm_ptrs.shared_game->num_successfull_plans++;
+        printf("Gang %d: Successful plan completed! Total successful plans: %d/%d\n", 
+               gang_id, shm_ptrs.shared_game->num_successfull_plans, config.max_successful_plans);
         printf("Gang %d: Notoriety increased after successful plan\n", gang_id);
         gang->notoriety += 0.1f;  // Increase notoriety on success
     } else {
         gang->num_thwarted_plans++;
         shm_ptrs.shared_game->num_thwarted_plans++;
+        printf("Gang %d: Plan thwarted! Total thwarted plans: %d/%d\n", 
+               gang_id, shm_ptrs.shared_game->num_thwarted_plans, config.max_thwarted_plans);
     }
     
     // Signal all waiting members about the plan execution result
