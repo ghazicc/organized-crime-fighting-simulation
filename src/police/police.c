@@ -10,6 +10,7 @@
 
 #include "shared_mem_utils.h"
 Game *shared_game = NULL;
+ShmPtrs shm_ptrs;
 
 void cleanup();
 void handle_sigint(int signum);
@@ -34,7 +35,8 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
 
     // Police process is a user of shared memory, not the owner
-    shared_game = setup_shared_memory_user(&config);
+    shared_game = setup_shared_memory_user(&config, &shm_ptrs);
+    shm_ptrs.shared_game = shared_game;
 }
 
 
