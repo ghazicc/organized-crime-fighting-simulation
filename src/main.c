@@ -11,12 +11,8 @@
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
-<<<<<<< HEAD
-pid_t  processes[10];
-=======
 ShmPtrs shm_ptrs;
 pid_t  processes[2];
->>>>>>> main
 Config config;
 
 /* ----------------------------------------------------------- */
