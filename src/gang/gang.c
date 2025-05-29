@@ -19,6 +19,7 @@
 #include "random.h"  // For random number generation
 
 Game *shared_game = NULL;
+ShmPtrs shm_ptrs;
 Gang *gang;
 int highest_rank_member_id = -1;
 
@@ -57,14 +58,15 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
 
     // Gang process is a user of shared memory, not the owner
-    shared_game = setup_shared_memory_user(&config);
+    shared_game = setup_shared_memory_user(&config, &shm_ptrs);
+    shm_ptrs.shared_game = shared_game;
 
     // Print the base address of shared memory for debugging
     printf("Gang %d: Shared memory mapped at %p\n", gang_id, (void*)shared_game);
     fflush(stdout);
 
-    // Assign gang struct
-    gang = &shared_game->gangs[gang_id];
+    // Assign gang struct using ShmPtrs
+    gang = &shm_ptrs.gangs[gang_id];
 
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
@@ -83,7 +85,7 @@ int main(int argc, char *argv[]) {
     printf("Gang %d process started...\n", gang_id);
     fflush(stdout);
 
-    printf("gang 0 member count %d\n", shared_game->gangs[0].max_member_count);
+    printf("gang 0 member count %d\n", shm_ptrs.gangs[0].max_member_count);
     fflush(stdout);
     
     printf("Gang %d: About to initialize %d members\n", gang_id, gang->max_member_count);
@@ -222,12 +224,12 @@ int main(int argc, char *argv[]) {
     // Update gang statistics
     if (gang->plan_success == 1) {
         gang->num_successful_plans++;
-        shared_game->num_successfull_plans++;
+        shm_ptrs.shared_game->num_successfull_plans++;
         printf("Gang %d: Notoriety increased after successful plan\n", gang_id);
         gang->notoriety += 0.1f;  // Increase notoriety on success
     } else {
         gang->num_thwarted_plans++;
-        shared_game->num_thwarted_plans++;
+        shm_ptrs.shared_game->num_thwarted_plans++;
     }
     
     // Signal all waiting members about the plan execution result
