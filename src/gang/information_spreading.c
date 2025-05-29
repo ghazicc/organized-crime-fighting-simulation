@@ -187,49 +187,60 @@ void update_member_knowledge_from_info(Member* member) {
     if (member->info_count == 0) return;
     
     float total_weight = 0.0f;
-    float weighted_accuracy = 0.0f;
+    float weighted_knowledge_sum = 0.0f;
     float misinformation_accumulation = 0.0f;
     
     // Process all received information
     for (int i = 0; i < member->info_count; i++) {
         InformationPacket* info = &member->received_info[i];
         
-        // Weight recent information more heavily
+        // Weight recent information more heavily (newer info has higher weight)
         float time_weight = 1.0f / (1.0f + i * 0.2f);
         
         // Weight information from higher-ranked sources more heavily
         float rank_weight = 1.0f + (info->source_rank * 0.1f);
         
-        float total_info_weight = time_weight * rank_weight;
-        total_weight += total_info_weight;
+        // Calculate the combined weight for this piece of information
+        float info_weight = time_weight * rank_weight;
+        total_weight += info_weight;  // Accumulate total weight
         
+        // Process different types of information
         if (info->type == INFO_CORRECT) {
-            weighted_accuracy += info->accuracy * total_info_weight;
+            // Correct information contributes positively to knowledge
+            weighted_knowledge_sum += info->accuracy * info_weight;
         } else if (info->type == INFO_FALSE) {
-            weighted_accuracy += (1.0f - info->accuracy) * total_info_weight * 0.3f; // False info hurts knowledge
-            misinformation_accumulation += (1.0f - info->accuracy) * total_info_weight * 0.5f;
+            // False information reduces effective knowledge and increases misinformation
+            weighted_knowledge_sum += (info->accuracy * 0.2f) * info_weight; // False info provides very little knowledge
+            misinformation_accumulation += (1.0f - info->accuracy) * info_weight;
         } else { // INFO_PARTIAL
-            weighted_accuracy += info->accuracy * total_info_weight * 0.7f; // Partial info is less valuable
+            // Partial information provides reduced but still valuable knowledge
+            weighted_knowledge_sum += (info->accuracy * 0.7f) * info_weight;
+            misinformation_accumulation += (1.0f - info->accuracy) * info_weight * 0.3f;
         }
     }
     
     if (total_weight > 0.0f) {
-        // Calculate new knowledge level
-        float info_contribution = weighted_accuracy / total_weight;
+        // Calculate the knowledge contribution from received information
+        float info_knowledge_contribution = weighted_knowledge_sum / total_weight;
+        float info_misinformation_contribution = misinformation_accumulation / total_weight;
         
-        // Blend with existing knowledge (80% existing, 20% new info)
-        member->knowledge = member->knowledge * 0.8f + info_contribution * 0.2f;
+        // Blend with existing knowledge (70% existing, 30% new info for more dynamic updates)
+        member->knowledge = member->knowledge * 0.7f + info_knowledge_contribution * 0.3f;
         
-        // Update misinformation level
-        member->misinformation_level = member->misinformation_level * 0.9f + (misinformation_accumulation / total_weight) * 0.1f;
+        // Update misinformation level (85% existing, 15% new misinformation)
+        member->misinformation_level = member->misinformation_level * 0.85f + info_misinformation_contribution * 0.15f;
         
-        // Clamp values
+        // Apply misinformation penalty to knowledge
+        float misinformation_penalty = member->misinformation_level * 0.1f;
+        member->knowledge = member->knowledge * (1.0f - misinformation_penalty);
+        
+        // Clamp values to valid ranges
         if (member->knowledge < 0.0f) member->knowledge = 0.0f;
         if (member->knowledge > 1.0f) member->knowledge = 1.0f;
         if (member->misinformation_level < 0.0f) member->misinformation_level = 0.0f;
         if (member->misinformation_level > 1.0f) member->misinformation_level = 1.0f;
         
-        printf("Gang %d, Member %d: Knowledge updated to %.3f, Misinformation: %.3f\n",
-               member->gang_id, member->member_id, member->knowledge, member->misinformation_level);
+        printf("Gang %d, Member %d: Knowledge updated to %.3f (penalty: %.3f), Misinformation: %.3f\n",
+               member->gang_id, member->member_id, member->knowledge, misinformation_penalty, member->misinformation_level);
     }
 }
