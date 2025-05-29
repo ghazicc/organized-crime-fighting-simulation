@@ -7,10 +7,10 @@
 #define SHARED_MEM "/game_shared_mem"
 
 // For the main process (first to run) - creates and initializes shared memory
-Game* setup_shared_memory_owner(Config *cfg);
+Game* setup_shared_memory_owner(Config *cfg, ShmPtrs *shm_ptrs);
 
 // For secondary processes - only maps to existing shared memory
-Game* setup_shared_memory_user(Config *cfg);
+Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs);
 
 void cleanup_shared_memory(Game *shared_game);
 
