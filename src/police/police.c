@@ -9,7 +9,7 @@
 #include <unistd.h>  // For sleep()
 #include "config.h"
 #include "random.h"  // For random number generation
-
+#include "semaphores_utils.h"
 #include "shared_mem_utils.h"
 Game *shared_game = NULL;
 ShmPtrs shm_ptrs;
@@ -35,6 +35,12 @@ int main(int argc, char *argv[]) {
     deserialize_config(argv[1], &config);
 
     signal(SIGINT, handle_sigint);
+
+    // Initialize semaphores for this process
+    if (init_semaphores() != 0) {
+        fprintf(stderr, "Police: Failed to initialize semaphores\n");
+        exit(EXIT_FAILURE);
+    }
 
     // Initialize random number generator for this process
     init_random();
@@ -67,6 +73,7 @@ void handle_sigint(int signum) {
 void cleanup() {
 
     printf("cleaning up police\n");
+    cleanup_semaphores();
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
