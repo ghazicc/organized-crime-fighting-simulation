@@ -2,9 +2,9 @@
 
 ## Termination settings
 
-max_thwarted_plans=3
+max_thwarted_plans=10
 max_successful_plans=3
-max_executed_agents=5
+max_executed_agents=10
 
 
 ## Gang settings

@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     // Initialize plan status variables
     gang->members_ready = 0;
     gang->plan_success = 0; // 0 = not determined
-    gang->plan_in_progress = 0;
+    gang->plan_in_progress = 1; // Start with first plan in progress
 
 
     printf("Gang %d process started...\n", gang_id);
