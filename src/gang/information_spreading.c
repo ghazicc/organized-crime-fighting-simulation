@@ -6,6 +6,7 @@
 #include "gang.h"
 #include "random.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -81,8 +82,8 @@ void spread_information_in_gang(Gang* gang, Member* members, int current_time, i
     
     // Update knowledge levels based on received information
     for (int i = 0; i < gang->num_alive_members; i++) {
-        if (gang->members[i].is_alive) {
-            update_member_knowledge_from_info(&gang->members[i]);
+        if (members[i].is_alive) {
+            update_member_knowledge_from_info(&members[i]);
         }
     }
     

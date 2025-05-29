@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
     printf("Gang %d: Triggering information spreading at time %d\n", gang_id, current_time);
     fflush(stdout);
     
-    spread_information_in_gang(gang, current_time, highest_rank_member_id);
+    spread_information_in_gang(gang, members, current_time, highest_rank_member_id);
     
     // Wait for all threads to finish
     for(int i = 0; i < gang->max_member_count; i++) {
