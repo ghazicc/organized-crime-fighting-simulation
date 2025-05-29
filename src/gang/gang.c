@@ -24,6 +24,7 @@ ShmPtrs shm_ptrs;
 Gang *gang;
 Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
+volatile int should_terminate = 0; // Flag for clean termination
 
 void cleanup();
 void handle_sigint(int signum);
@@ -224,7 +225,7 @@ int main(int argc, char *argv[]) {
     printf("Gang %d: Starting main gang loop for multiple plans\n", gang_id);
     fflush(stdout);
     
-    while (1) {
+    while (!should_terminate) {
         // Reset for next plan
         pthread_mutex_lock(&gang->gang_mutex);
         gang->members_ready = 0;
@@ -339,6 +340,11 @@ int main(int argc, char *argv[]) {
 
 
 void handle_sigint(int signum) {
+    // Set termination flag for clean shutdown
+    should_terminate = 1;
+    printf("Gang process received SIGINT, preparing to terminate...\n");
+    fflush(stdout);
+    
     // Cleanup resources
     exit(0);
 }

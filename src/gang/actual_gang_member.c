@@ -9,6 +9,7 @@
 
 extern ShmPtrs shm_ptrs;
 extern int highest_rank_member_id;
+extern volatile int should_terminate; // Flag for clean termination
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
@@ -43,10 +44,10 @@ void* actual_gang_member_thread_function(void* arg) {
     fflush(stdout);
     
     // Regular member behavior - loop for multiple plans
-    while (1) {
+    while (!should_terminate) {
         // Wait for new plan to start
         pthread_mutex_lock(&gang->gang_mutex);
-        while (!gang->plan_in_progress && gang->members_ready == 0) {
+        while (!gang->plan_in_progress && gang->members_ready == 0 && !should_terminate) {
             printf("Gang %d, Member %d: Waiting for new plan to start\n", 
                    member->gang_id, member->member_id);
             fflush(stdout);
@@ -55,6 +56,14 @@ void* actual_gang_member_thread_function(void* arg) {
             pthread_mutex_lock(&gang->gang_mutex);
         }
         pthread_mutex_unlock(&gang->gang_mutex);
+        
+        // Check termination flag before starting new plan
+        if (should_terminate) {
+            printf("Gang %d, Member %d: Termination requested, exiting thread\n", 
+                   member->gang_id, member->member_id);
+            fflush(stdout);
+            break;
+        }
         
         // Reset member's preparation for new plan
         member->prep_contribution = 0;
