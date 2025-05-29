@@ -87,4 +87,14 @@ typedef struct {
     double weights[NUM_ATTRIBUTES];
 } Target;
 
+// // Information spreading function declarations
+// void initialize_member_knowledge(Member* member, int rank, int max_rank);
+// void spread_information_in_gang(Gang* gang, Member* members, int current_time);
+// void leader_spread_information(Gang* gang, Member* members, int leader_id, int current_time);
+// void update_member_knowledge_from_info(Member* member);
+// InfoType determine_info_type(int source_rank, int target_rank, float misinformation_chance);
+// float calculate_base_knowledge_by_rank(int rank, int max_rank);
+// void share_information_between_members(Member* source, Member* target, int current_time);
+// void add_information_to_member(Member* member, InfoType type, float accuracy, int source_rank, int timestamp);
+
 #endif //GANG_H
