@@ -9,8 +9,8 @@
 extern Game *shared_game;
 
 // Calculate success rate based on the formula
-float calculate_success_rate(Gang *gang, TargetType target_type, Config *config) {
-    if (gang == NULL || config == NULL) {
+float calculate_success_rate(Gang *gang, Member *members, TargetType target_type, Config *config) {
+    if (gang == NULL || members == NULL || config == NULL) {
         return 0.0f;
     }
     
@@ -24,20 +24,20 @@ float calculate_success_rate(Gang *gang, TargetType target_type, Config *config)
     for (int i = 0; i < gang->max_member_count; i++) {
         // For each member, calculate dot product of their attributes with target weights
 
-        if (!gang->members[i].is_alive) {
+        if (!members[i].is_alive) {
             continue;
         }
 
         // calculate attribute factor
-        float dot_product = calculate_dot_product(gang->members[i].attributes, 
+        float dot_product = calculate_dot_product(members[i].attributes, 
                                                   shared_game->targets[target_type].weights, 
                                                   NUM_ATTRIBUTES);
         
 
         // calculate rank factor
-        float rank_factor = (1.0f + (float)gang->members[i].rank / num_ranks);
+        float rank_factor = (1.0f + (float)members[i].rank / num_ranks);
         // calculate preparation factor
-        float prep_factor = (1.0f + (float)gang->members[i].prep_contribution / prep_levels);
+        float prep_factor = (1.0f + (float)members[i].prep_contribution / prep_levels);
 
         success_rate += dot_product * rank_factor * prep_factor;
                                                   
@@ -59,8 +59,8 @@ float calculate_success_rate(Gang *gang, TargetType target_type, Config *config)
 }
 
 // Determine if a plan succeeds based on success rate
-bool determine_plan_success(Gang *gang, TargetType target_type, Config *config) {
-    float success_rate = calculate_success_rate(gang, target_type, config);
+bool determine_plan_success(Gang *gang, Member *members, TargetType target_type, Config *config) {
+    float success_rate = calculate_success_rate(gang, members, target_type, config);
     
     // Generate a random number from 0 to 100
     float random_value = random_float(0, 100);
