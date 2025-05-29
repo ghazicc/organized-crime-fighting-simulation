@@ -6,6 +6,7 @@
 #include "json/json-config.h"
 #include "game.h"
 #include "shared_mem_utils.h"
+#include "semaphores_utils.h"
 #include "random.h"
 
 
@@ -32,6 +33,12 @@ int main(int argc,char *argv[]) {
     // reset_all_semaphores();
 
     atexit(cleanup_resources);
+    
+    // Initialize semaphores for inter-process synchronization
+    if (init_semaphores() != 0) {
+        fprintf(stderr, "Failed to initialize semaphores\n");
+        return 1;
+    }
     
     // Initialize random number generator
     init_random();
@@ -79,6 +86,12 @@ void cleanup_resources() {
 
     for(int i=0;i<2;i++) kill(processes[i],SIGINT);
     cleanup_shared_memory(shared_game);
+    cleanup_semaphores();
+    
+    // Unlink semaphores (only main process should do this)
+    sem_unlink(GAME_STATS_SEM_NAME);
+    sem_unlink(GANG_STATS_SEM_NAME);
+    
     printf("Cleanup complete\n");
 }
 void handle_kill(int signum) {
