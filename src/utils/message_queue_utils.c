@@ -42,5 +42,15 @@ int delete_message_queue(int msgid) {
     return 0;
 }
 
+long get_agent_msgtype(const int MAX_AGENTS, const int8_t gang_id, const int8_t agent_id) {
+    return (MAX_AGENTS + 1) * gang_id + agent_id + 1;
+}
 
+long get_gang_msgtype(const int MAX_AGENTS, const int8_t gang_id) {
+    return MAX_AGENTS * gang_id + MAX_AGENTS + 1;
+}
+
+long get_police_msgtype(const int MAX_AGENTS, const int NUM_GANGS, const int8_t police_id) {
+    return (MAX_AGENTS + 1) * NUM_GANGS + police_id + 1;
+}
 
