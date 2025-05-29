@@ -21,6 +21,7 @@
 Game *shared_game = NULL;
 ShmPtrs shm_ptrs;
 Gang *gang;
+Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
 
 void cleanup();
@@ -57,6 +58,11 @@ int main(int argc, char *argv[]) {
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
 
+    // Initialize random number generator for this process
+    init_random();
+    printf("Gang %d: Random number generator initialized\n", gang_id);
+    fflush(stdout);
+
     // Gang process is a user of shared memory, not the owner
     shared_game = setup_shared_memory_user(&config, &shm_ptrs);
     shm_ptrs.shared_game = shared_game;
@@ -67,6 +73,13 @@ int main(int argc, char *argv[]) {
 
     // Assign gang struct using ShmPtrs
     gang = &shm_ptrs.gangs[gang_id];
+    
+    // Set up local pointer to this gang's members
+    members = shm_ptrs.gang_members[gang_id];
+    
+    printf("Gang %d: Gang struct at %p, Members array at %p\n", 
+           gang_id, (void*)gang, (void*)members);
+    fflush(stdout);
 
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
@@ -93,13 +106,16 @@ int main(int argc, char *argv[]) {
     
     // Initialize gang members
     for(int i = 0; i < gang->max_member_count; i++) {
-        gang->members[i].gang_id = gang_id;
-        gang->members[i].member_id = i;
-        gang->members[i].rank = rand() % config.num_ranks;
-        gang->members[i].prep_contribution = 0;
-        gang->members[i].agent_id = -1;
-        gang->members[i].suspicion = 0.0f;
-        gang->members[i].is_alive = true;
+        printf("Gang %d: Initializing member %d basic properties\n", gang_id, i);
+        fflush(stdout);
+        
+        members[i].gang_id = gang_id;
+        members[i].member_id = i;
+        members[i].rank = rand() % config.num_ranks;
+        members[i].prep_contribution = 0;
+        members[i].agent_id = -1;
+        members[i].suspicion = 0.0f;
+        members[i].is_alive = true;
 
         // Set up means and standard deviations for attributes
         float means[NUM_ATTRIBUTES] = {
@@ -137,19 +153,30 @@ int main(int argc, char *argv[]) {
         
         // Generate attributes using multivariate Gaussian distribution
         printf("Gang %d: Generating correlated attributes for member %d\n", gang_id, i);
-        generate_multivariate_attributes(gang->members[i].attributes, means, stddevs, correlation_matrix);
+        fflush(stdout);
+        generate_multivariate_attributes(members[i].attributes, means, stddevs, correlation_matrix);
+        
+        // Initialize member knowledge for information spreading
+        initialize_member_knowledge(&members[i], members[i].rank, config.num_ranks - 1);
+        
+        printf("Gang %d: Member %d initialized successfully\n", gang_id, i);
+        fflush(stdout);
     }
     
     // Find the member with the highest rank - but don't select target here
     // Target selection will happen in the highest-ranked member's thread
-    highest_rank_member_id = find_highest_ranked_member(gang);
+    highest_rank_member_id = find_highest_ranked_member(gang, members);
     if (highest_rank_member_id >= 0) {
         printf("Gang %d highest ranked member is member %d with rank %d\n", 
-            gang_id, highest_rank_member_id, gang->members[highest_rank_member_id].rank);
+            gang_id, highest_rank_member_id, members[highest_rank_member_id].rank);
         fflush(stdout);
         
         // make the highest ranked member have the highest rank
-        gang->members[highest_rank_member_id].rank = config.num_ranks - 1;
+        members[highest_rank_member_id].rank = config.num_ranks - 1;
+        
+        printf("Gang %d: Updated highest ranked member %d to rank %d\n", 
+            gang_id, highest_rank_member_id, members[highest_rank_member_id].rank);
+        fflush(stdout);
     } else {
         printf("Gang %d has no members to select a target\n", gang_id);
         fflush(stdout);
@@ -157,16 +184,9 @@ int main(int argc, char *argv[]) {
 
     // Create threads for all gang members
     for(int i = 0; i < gang->max_member_count; i++) {
-        // CRITICAL: Allocate memory for thread argument to avoid data race
-        Member *thread_arg = &gang->members[i];
-        if (thread_arg == NULL) {
-            fprintf(stderr, "Failed to allocate memory for thread argument\n");
-            exit(EXIT_FAILURE);
-        }
-
-        // Copy the member data to the allocated memory
-        // *thread_arg = gang->members[i];
-
+        // Pass the member from the local members array
+        Member *thread_arg = &members[i];
+        
         // Create thread for each member
         int ret;
         pthread_t thread_id;
@@ -174,7 +194,7 @@ int main(int argc, char *argv[]) {
         printf("Creating gang member thread %d\n", i);
         ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
         
-        gang->members[i].thread = thread_id;
+        members[i].thread = thread_id;
 
         if (ret != 0) {
             fprintf(stderr, "Failed to create thread: %d\n", ret);

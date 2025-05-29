@@ -61,14 +61,27 @@ Game* setup_shared_memory_owner(Config *cfg, ShmPtrs *shm_ptrs) {
     // Set up pointers to dynamic parts
     shm_ptrs->gangs = (Gang*)((char*)game + sizeof(Game));
     
+    // Allocate array for gang member pointers
+    shm_ptrs->gang_members = malloc(cfg->num_gangs * sizeof(Member*));
+    if (shm_ptrs->gang_members == NULL) {
+        fprintf(stderr, "OWNER: Failed to allocate gang_members array\n");
+        exit(EXIT_FAILURE);
+    }
+    
     // Set up gang member pointers
     for (int i = 0; i < cfg->num_gangs; i++) {
         shm_ptrs->gangs[i].gang_id = i; // Pre-initialize gang IDs
         shm_ptrs->gangs[i].max_member_count = random_int(cfg->min_gang_size, cfg->max_gang_size);
         shm_ptrs->gangs[i].num_alive_members = shm_ptrs->gangs[i].max_member_count;
-        shm_ptrs->gangs[i].members = (Member*)((char*)shm_ptrs->gangs +
+        
+        // Set up local pointer to this gang's members
+        shm_ptrs->gang_members[i] = (Member*)((char*)shm_ptrs->gangs +
                                        gangs_size + 
                                        i * cfg->max_gang_size * sizeof(Member));
+        
+        printf("OWNER: Gang %d: %d members at offset %ld\n", 
+               i, shm_ptrs->gangs[i].max_member_count,
+               (char*)shm_ptrs->gang_members[i] - (char*)game);
     }
     
     printf("OWNER: Shared memory layout initialized\n");
@@ -121,13 +134,20 @@ Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs) {
            (char*)shm_ptrs->gangs - (char*)game, (void*)shm_ptrs->gangs);
     fflush(stdout);
     
+    // Allocate array for gang member pointers
+    shm_ptrs->gang_members = malloc(cfg->num_gangs * sizeof(Member*));
+    if (shm_ptrs->gang_members == NULL) {
+        fprintf(stderr, "USER: Failed to allocate gang_members array\n");
+        exit(EXIT_FAILURE);
+    }
+    
     // Set up member pointers for each gang
     for (int i = 0; i < cfg->num_gangs; i++) {
-        shm_ptrs->gangs[i].members = (Member*)((char*)shm_ptrs->gangs + 
+        shm_ptrs->gang_members[i] = (Member*)((char*)shm_ptrs->gangs + 
                                       gangs_size + 
                                       i * cfg->max_gang_size * sizeof(Member));
         printf("USER: Gang %d members at offset %ld, address %p\n",
-               i, (char*)shm_ptrs->gangs[i].members - (char*)game, (void*)shm_ptrs->gangs[i].members);
+               i, (char*)shm_ptrs->gang_members[i] - (char*)game, (void*)shm_ptrs->gang_members[i]);
         fflush(stdout);
     }
     

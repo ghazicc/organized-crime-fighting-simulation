@@ -8,6 +8,7 @@
 #include "target_selection.h"
 
 extern ShmPtrs shm_ptrs;
+extern int highest_rank_member_id;
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
@@ -36,6 +37,10 @@ void* actual_gang_member_thread_function(void* arg) {
                member->gang_id, gang->target_type, gang->prep_time, gang->prep_level);
         fflush(stdout);
     }
+    
+    printf("Gang %d, Member %d: Starting regular preparation loop\n", 
+           member->gang_id, member->member_id);
+    fflush(stdout);
     
     // Regular member behavior
     while (1) {

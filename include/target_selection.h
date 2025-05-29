@@ -29,7 +29,7 @@ float sum_array(const float *array, int size);
  * @param gang The gang to search in
  * @return The ID of the member with the highest rank, or -1 if no members
  */
-int find_highest_ranked_member(Gang *gang);
+int find_highest_ranked_member(Gang *gang, Member *members);
 
 /**
  * Select a new target for the gang based on attributes of the highest-ranked member

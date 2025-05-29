@@ -55,7 +55,7 @@ typedef struct {
     int target_type;
     int prep_time;
     int prep_level;
-    Member *members;
+    // Note: members pointer is NOT stored in shared memory - it's calculated locally in each process
     int num_alive_members; // Number of alive members in the gang
     int max_member_count; // max number of members
     int num_successful_plans; // Number of successful plans
@@ -64,6 +64,11 @@ typedef struct {
     int num_agents; // Number of agents in the gang
     float notoriety; // Notoriety level of the gang
     float heat[NUM_TARGETS]; // Heat level for each target
+    
+    // Information spreading system
+    int last_info_spread_time;           // Last time information was spread
+    int info_spread_interval;            // Random interval for spreading info
+    float leader_misinformation_chance;  // Chance leader spreads false info
     
     // Synchronization variables
     pthread_mutex_t gang_mutex;          // Mutex for accessing gang data

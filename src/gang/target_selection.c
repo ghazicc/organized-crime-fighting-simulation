@@ -22,8 +22,8 @@ float sum_array(const float *array, int size) {
     return total;
 }
 
-int find_highest_ranked_member(Gang *gang) {
-    if (gang == NULL || gang->max_member_count <= 0) {
+int find_highest_ranked_member(Gang *gang, Member *members) {
+    if (gang == NULL || gang->max_member_count <= 0 || members == NULL) {
         return -1;
     }
 
@@ -31,8 +31,8 @@ int find_highest_ranked_member(Gang *gang) {
     int highest_ranked_id = -1;
 
     for (int i = 0; i < gang->max_member_count; i++) {
-        if (gang->members[i].rank > highest_rank) {
-            highest_rank = gang->members[i].rank;
+        if (members[i].rank > highest_rank) {
+            highest_rank = members[i].rank;
             highest_ranked_id = i;
         }
     }
