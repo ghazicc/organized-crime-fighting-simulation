@@ -9,6 +9,9 @@
 #include "game.h"
 #include "gang.h"
 #include "shared_mem_utils.h"
+#include "message.h"
+#include <unistd.h>
+#include <time.h>
 
 void secret_agent_init(Game* shared_game, Member* member) {
     // Find the actual member in shared memory
@@ -134,10 +137,32 @@ void conduct_internal_investigation(Config config, Game* shared_game, int gang_i
 
 }
 
+void police_request_agent_knowledge(int police_msgid, Game* shared_game, int8_t gang_id, int8_t agent_id, Config config,Gang* gang) {
+    Message msg;
+    msg.mtype = get_agent_msgtype(gang->max_member_count, gang_id, agent_id);
+    msg.mode = 2; // request knowledge
+    send_message(police_msgid, &msg);
+}
 
+void agent_report_knowledge(Member* agent, Game* shared_game, int police_msgid, int police_id,Gang* gang,Config config) {
+    Message msg;
+    msg.mtype = get_police_msgtype(gang->max_member_count, config.max_gangs, police_id);
+    msg.mode = 3; // report knowledge
+    msg.MessageContent.knowledge = agent->knowledge;
+    send_message(police_msgid, &msg);
+}
 
-
-
-
+void secret_agent_handle_police_requests(Member* agent, Game* shared_game, int police_msgid, int police_id,Gang* gang,Config config) {
+    Message msg;
+    long agent_msgtype = get_agent_msgtype(gang->max_member_count, agent->gang_id, agent->member_id);
+    while (1) {
+        if (receive_message(police_msgid, &msg, agent_msgtype) == 0) {
+            if (msg.mode == 2) { // police requests knowledge
+                agent_report_knowledge(agent, shared_game, police_msgid, police_id,gang, config);
+            }
+        }
+        usleep(100000);
+    }
+}
 
 
