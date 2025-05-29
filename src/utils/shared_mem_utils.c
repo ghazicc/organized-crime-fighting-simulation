@@ -70,6 +70,10 @@ Game* setup_shared_memory_owner(Config *cfg) {
                                        gangs_size + 
                                        i * cfg->max_gang_size * sizeof(Member));
     }
+
+    for (int i = 0; i < cfg->num_gangs; i++) {
+
+    }
     
     printf("OWNER: Shared memory layout initialized\n");
     fflush(stdout);

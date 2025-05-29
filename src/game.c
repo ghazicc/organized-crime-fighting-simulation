@@ -21,24 +21,10 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     game->num_successfull_plans = 0;
     game->num_executed_agents = 0;
 
-    // Initialize pointers to dynamic parts
-    game->gangs = (Gang*)((char*)game + sizeof(Game));
- // Updated as gangs spawn
-
-    size_t gangs_size = cfg->num_gangs * sizeof(Gang);
-
-    // Initialize each Gang's member array
-    for (int i = 0; i < cfg->num_gangs ; i++) {
-        game->gangs[i].members = (Member*)((char*)game->gangs + gangs_size +
-                                        i * cfg->max_gang_size * sizeof(Member));
-    }
-
     char *binary_paths[] = {
         POLICE_EXECUTABLE,
         GANG_EXECUTABLE
     };
-
-
 
     // gang processes
     for(int i = 0; i < cfg->num_gangs; i++) {

@@ -2,14 +2,16 @@
 // Created by yazan on 5/12/2025.
 //
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/mman.h>
+#include "police.h"
 #include <signal.h>
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
 #include "config.h"
 #include "shared_mem_utils.h"
-#include "police.h"
+
+#include <unistd.h>
+
 #include "random.h"
 
 PoliceForce police_force;

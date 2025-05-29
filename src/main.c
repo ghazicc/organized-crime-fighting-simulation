@@ -41,9 +41,6 @@ int main(int argc,char *argv[]) {
         return 1;
     }
 
-    
-
-
     // randomize the number of gangs based on the user-defined range
 
     config.num_gangs = (int) random_float(config.min_gangs, config.max_gangs); 

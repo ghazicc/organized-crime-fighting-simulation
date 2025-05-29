@@ -18,9 +18,7 @@ typedef struct {
     int gang_id_monitoring;  // Which gang this police officer monitors (same as police_id)
     bool is_active;
     pthread_t thread;
-    Game *shared_game;
-    Config *config;
-    
+
     // Simple array of secret agent IDs managed by this police officer
     int secret_agent_ids[MAX_AGENTS_PER_GANG];
     int num_agents;
