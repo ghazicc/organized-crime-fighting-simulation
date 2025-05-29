@@ -108,8 +108,8 @@ typedef struct {
 
 // Information spreading function declarations
 void initialize_member_knowledge(Member* member, int rank, int max_rank);
-void spread_information_in_gang(Gang* gang, int current_time, int leader_id);
-void leader_spread_information(Gang* gang, int leader_id, int current_time);
+void spread_information_in_gang(Gang* gang, Member* members, int current_time, int leader_id);
+void leader_spread_information(Gang* gang, Member* members, int leader_id, int current_time);
 void update_member_knowledge_from_info(Member* member);
 InfoType determine_info_type(int source_rank, int target_rank, float misinformation_chance);
 float calculate_base_knowledge_by_rank(int rank, int max_rank);

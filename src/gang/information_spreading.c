@@ -47,7 +47,7 @@ float calculate_base_knowledge_by_rank(int rank, int max_rank) {
 }
 
 // Main information spreading function
-void spread_information_in_gang(Gang* gang, int current_time, int leader_id) {
+void spread_information_in_gang(Gang* gang, Member* members, int current_time, int leader_id) {
     // Check if it's time to spread information
     if (current_time - gang->last_info_spread_time < gang->info_spread_interval) {
         return; // Not time yet
@@ -56,24 +56,24 @@ void spread_information_in_gang(Gang* gang, int current_time, int leader_id) {
     printf("Gang %d: Information spreading session at time %d\n", gang->gang_id, current_time);
     
     // Leader spreads information to subordinates
-    leader_spread_information(gang, leader_id, current_time);
+    leader_spread_information(gang, members, leader_id, current_time);
     
     // Regular information flow from higher to lower ranks
     for (int source = 0; source < gang->num_alive_members; source++) {
-        if (!gang->members[source].is_alive) continue;
+        if (!members[source].is_alive) continue;
         
         for (int target = 0; target < gang->num_alive_members; target++) {
-            if (!gang->members[target].is_alive || source == target) continue;
+            if (!members[target].is_alive || source == target) continue;
             
             // Information flows from higher rank to lower rank
-            if (gang->members[source].rank > gang->members[target].rank) {
+            if (members[source].rank > members[target].rank) {
                 // Chance to share information based on rank difference
-                int rank_diff = gang->members[source].rank - gang->members[target].rank;
+                int rank_diff = members[source].rank - members[target].rank;
                 float share_chance = 0.7f / (1.0f + rank_diff * 0.3f); // Decreases with rank gap
                 
                 if (random_float(0.0f, 1.0f) < share_chance) {
                     // Share information
-                    share_information_between_members(&gang->members[source], &gang->members[target], current_time);
+                    share_information_between_members(&members[source], &members[target], current_time);
                 }
             }
         }
@@ -94,8 +94,8 @@ void spread_information_in_gang(Gang* gang, int current_time, int leader_id) {
 }
 
 // Leader spreads information (may include misinformation)
-void leader_spread_information(Gang* gang, int leader_id, int current_time) {
-    Member* leader = &gang->members[leader_id];
+void leader_spread_information(Gang* gang, Member* members, int leader_id, int current_time) {
+    Member* leader = &members[leader_id];
     
     printf("Gang %d: Leader (Member %d, rank %d) spreading information\n", 
            gang->gang_id, leader_id, leader->rank);
@@ -109,14 +109,14 @@ void leader_spread_information(Gang* gang, int leader_id, int current_time) {
     
     // Share information with all subordinates
     for (int i = 0; i < gang->num_alive_members; i++) {
-        if (!gang->members[i].is_alive || i == leader_id) continue;
+        if (!members[i].is_alive || i == leader_id) continue;
         
         // Only share with lower-ranked members
-        if (gang->members[i].rank < leader->rank) {
+        if (members[i].rank < leader->rank) {
             InfoType info_type = spread_false_info ? INFO_FALSE : INFO_CORRECT;
             float accuracy = spread_false_info ? random_float(0.1f, 0.4f) : random_float(0.8f, 1.0f);
             
-            add_information_to_member(&gang->members[i], info_type, accuracy, leader->rank, current_time);
+            add_information_to_member(&members[i], info_type, accuracy, leader->rank, current_time);
             
             printf("Gang %d: Leader shared %s info (accuracy: %.2f) with Member %d\n", 
                    gang->gang_id, 
