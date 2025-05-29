@@ -16,6 +16,7 @@
 #include "target_selection.h"
 #include "success_rate.h"  // For success rate calculation
 #include "shared_mem_utils.h"
+#include "semaphores_utils.h"
 #include "random.h"  // For random number generation
 
 Game *shared_game = NULL;
@@ -57,6 +58,12 @@ int main(int argc, char *argv[]) {
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
+
+    // Initialize semaphores for this process
+    if (init_semaphores() != 0) {
+        fprintf(stderr, "Gang %d: Failed to initialize semaphores\n", gang_id);
+        exit(EXIT_FAILURE);
+    }
 
     // Initialize random number generator for this process
     init_random();
@@ -267,19 +274,37 @@ int main(int argc, char *argv[]) {
                gang_id, gang->plan_success == 1 ? "SUCCEEDED" : "FAILED");
         fflush(stdout);
         
-        // Update gang statistics
+        // Update gang statistics with semaphore protection
         if (gang->plan_success == 1) {
+            // Protect local gang statistics with gang stats semaphore
+            LOCK_GANG_STATS();
             gang->num_successful_plans++;
-            shm_ptrs.shared_game->num_successfull_plans++;
-            printf("Gang %d: Successful plan completed! Total successful plans: %d/%d\n", 
-                   gang_id, shm_ptrs.shared_game->num_successfull_plans, config.max_successful_plans);
-            printf("Gang %d: Notoriety increased after successful plan\n", gang_id);
             gang->notoriety += 0.1f;  // Increase notoriety on success
+            UNLOCK_GANG_STATS();
+            
+            // Protect shared game statistics with game stats semaphore
+            LOCK_GAME_STATS();
+            shm_ptrs.shared_game->num_successfull_plans++;
+            int total_successful = shm_ptrs.shared_game->num_successfull_plans;
+            UNLOCK_GAME_STATS();
+            
+            printf("Gang %d: Successful plan completed! Total successful plans: %d/%d\n", 
+                   gang_id, total_successful, config.max_successful_plans);
+            printf("Gang %d: Notoriety increased after successful plan\n", gang_id);
         } else {
+            // Protect local gang statistics with gang stats semaphore
+            LOCK_GANG_STATS();
             gang->num_thwarted_plans++;
+            UNLOCK_GANG_STATS();
+            
+            // Protect shared game statistics with game stats semaphore
+            LOCK_GAME_STATS();
             shm_ptrs.shared_game->num_thwarted_plans++;
+            int total_thwarted = shm_ptrs.shared_game->num_thwarted_plans;
+            UNLOCK_GAME_STATS();
+            
             printf("Gang %d: Plan thwarted! Total thwarted plans: %d/%d\n", 
-                   gang_id, shm_ptrs.shared_game->num_thwarted_plans, config.max_thwarted_plans);
+                   gang_id, total_thwarted, config.max_thwarted_plans);
         }
         
         // Signal all waiting members about the plan execution result
@@ -321,6 +346,7 @@ void handle_sigint(int signum) {
 void cleanup() {
 
     printf("cleaning up gang\n");
+    cleanup_semaphores();
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
