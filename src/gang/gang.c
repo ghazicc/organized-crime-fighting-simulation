@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     
     // Calculate if the plan succeeds
-    gang->plan_success = determine_plan_success(gang, gang->target_type, &config) ? 1 : -1;
+    gang->plan_success = determine_plan_success(gang, members, gang->target_type, &config) ? 1 : -1;
     
     printf("Gang %d: Plan %s! Main thread signaling all members\n", 
            gang_id, gang->plan_success == 1 ? "SUCCEEDED" : "FAILED");
