@@ -6,13 +6,15 @@
 #include "json/json-config.h"
 #include "game.h"
 #include "shared_mem_utils.h"
+#include "semaphores_utils.h"
 #include "random.h"
 
 
 /* globals from your original code --------------------------- */
 Game  *shared_game         = NULL;
 ShmPtrs shm_ptrs;
-pid_t  processes[2];
+pid_t  *processes          = NULL;  // Dynamic allocation based on number of gangs
+int    num_processes       = 0;
 Config config;
 
 /* ----------------------------------------------------------- */
@@ -33,6 +35,12 @@ int main(int argc,char *argv[]) {
 
     atexit(cleanup_resources);
     
+    // Initialize semaphores for inter-process synchronization
+    if (init_semaphores() != 0) {
+        fprintf(stderr, "Failed to initialize semaphores\n");
+        return 1;
+    }
+    
     // Initialize random number generator
     init_random();
     
@@ -50,6 +58,14 @@ int main(int argc,char *argv[]) {
     config.num_gangs = (int) random_float(config.min_gangs, config.max_gangs); 
 
     printf("Number of gangs: %d\n", config.num_gangs);
+
+    // Allocate memory for process IDs (1 police + num_gangs gang processes)
+    num_processes = 1 + config.num_gangs;
+    processes = malloc(num_processes * sizeof(pid_t));
+    if (processes == NULL) {
+        fprintf(stderr, "Failed to allocate memory for process array\n");
+        return 1;
+    }
 
     // Main process is the owner of shared memory
     shared_game = setup_shared_memory_owner(&config, &shm_ptrs);
@@ -77,8 +93,28 @@ int main(int argc,char *argv[]) {
 void cleanup_resources() {
     printf("Cleaning up resources...\n"); fflush(stdout);
 
-    for(int i=0;i<2;i++) kill(processes[i],SIGINT);
+    // Terminate all child processes (police + all gangs)
+    for(int i = 0; i < num_processes; i++) {
+        if (processes[i] > 0) {
+            printf("Terminating process %d (PID: %d)\n", i, processes[i]);
+            fflush(stdout);
+            kill(processes[i], SIGINT);
+        }
+    }
+    
+    // Free the processes array
+    if (processes != NULL) {
+        free(processes);
+        processes = NULL;
+    }
+    
     cleanup_shared_memory(shared_game);
+    cleanup_semaphores();
+    
+    // Unlink semaphores (only main process should do this)
+    sem_unlink(GAME_STATS_SEM_NAME);
+    sem_unlink(GANG_STATS_SEM_NAME);
+    
     printf("Cleanup complete\n");
 }
 void handle_kill(int signum) {

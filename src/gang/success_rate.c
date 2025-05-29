@@ -46,6 +46,7 @@ float calculate_success_rate(Gang *gang, Member *members, TargetType target_type
     float difficulty_factor = (1.0f + (config->difficulty_level * 1.0) / config->max_difficulty);
     
     success_rate /= (gang->max_member_count * difficulty_factor * difficulty_factor); // Average over all members
+    success_rate *= 100.0f; // Convert to percentage
 
     // Clamp to 0-100 range
     if (success_rate < 0.0f) success_rate = 0.0f;
