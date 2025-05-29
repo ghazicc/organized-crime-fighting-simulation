@@ -11,8 +11,8 @@ max_executed_agents=5
 
 max_agents_per_gang=3
 
-min_gangs=3
-max_gangs=4
+min_gangs=1
+max_gangs=2
 
 min_gang_size=3
 max_gang_size=10
