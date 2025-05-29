@@ -2,13 +2,11 @@
 // Created by - on 3/26/2025.
 //
 
-#define GANGS_PER_DEPARTMENT 2
-
 #include "game.h"
 #include <fcntl.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include "config.h"
 #include "unistd.h"
 
@@ -16,7 +14,7 @@
 
 
 #define MAX_PATH 128
-int game_init(Game *game, pid_t *processes, Config *config) {
+int game_init(Game *game, pid_t *processes, Config *cfg) {
 
     game->elapsed_time = 0;
     game->num_thwarted_plans = 0;
@@ -25,14 +23,14 @@ int game_init(Game *game, pid_t *processes, Config *config) {
 
     // Initialize pointers to dynamic parts
     game->gangs = (Gang*)((char*)game + sizeof(Game));
-    game->num_gangs = (int) random_float(config->min_gangs, config->max_gangs);  // Updated as gangs spawn
+ // Updated as gangs spawn
 
-    size_t gangs_size = config->max_gangs * sizeof(Gang);
+    size_t gangs_size = cfg->num_gangs * sizeof(Gang);
 
     // Initialize each Gang's member array
-    for (int i = 0; i < config->max_gangs; i++) {
+    for (int i = 0; i < cfg->num_gangs ; i++) {
         game->gangs[i].members = (Member*)((char*)game->gangs + gangs_size +
-                                        i * config->max_gang_size * sizeof(Member));
+                                        i * cfg->max_gang_size * sizeof(Member));
     }
 
     char *binary_paths[] = {
@@ -43,8 +41,8 @@ int game_init(Game *game, pid_t *processes, Config *config) {
 
 
     // gang processes
-    for(int i = 0; i < config->max_gangs; i++) {
-        processes[i+1] = start_process(binary_paths[1], config, i);
+    for(int i = 0; i < cfg->num_gangs; i++) {
+        processes[i+1] = start_process(binary_paths[1], cfg, i);
     }
 
     return 0;

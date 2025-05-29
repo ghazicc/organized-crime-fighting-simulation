@@ -167,7 +167,7 @@ int check_parameter_correctness(const Config *config) {
 }
 
 void serialize_config(Config *config, char *buffer) {
-    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d",
+    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d",
             config->max_thwarted_plans,
             config->max_successful_plans,
             config->max_executed_agents,
@@ -187,7 +187,9 @@ void serialize_config(Config *config, char *buffer) {
             config->death_probability,
             config->difficulty_level,
             config->max_difficulty,
-            config->timeout_period);
+            config->timeout_period,
+            config->max_difficulty,
+            config->num_gangs);
 }
 
 void deserialize_config(const char *buffer, Config *config) {
@@ -210,6 +212,7 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->max_level_prepare,
             &config->death_probability,
             &config->difficulty_level,
+            &config->timeout_period,
             &config->max_difficulty,
-            &config->timeout_period);
+            &config->num_gangs);
 }

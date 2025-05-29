@@ -1,10 +1,11 @@
 #include "shared_mem_utils.h"
 #include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include "gang.h"
+#include "random.h"
 
 
 // Owner function - creates, truncates, and maps shared memory
@@ -14,8 +15,8 @@ Game* setup_shared_memory_owner(Config *cfg) {
     
     // Allocate shared memory for Game + dynamic arrays
     size_t game_size = sizeof(Game);
-    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
-    size_t members_size = cfg->max_gangs * cfg->max_gang_size * sizeof(Member);
+    size_t gangs_size = cfg->num_gangs * sizeof(Gang);
+    size_t members_size = cfg->num_gangs * cfg->max_gang_size * sizeof(Member);
     size_t total_size = game_size + gangs_size + members_size;
     
     printf("OWNER: Game struct layout: Game size: %zu, Gang: %zu, Member: %zu\n", 
@@ -57,20 +58,15 @@ Game* setup_shared_memory_owner(Config *cfg) {
     printf("OWNER: Initializing memory layout\n");
     fflush(stdout);
     
-    // Initialize game fields
-    game->elapsed_time = 0;
-    game->num_thwarted_plans = 0;
-    game->num_successfull_plans = 0;
-    game->num_executed_agents = 0;
-
     // Set up pointers to dynamic parts
     game->gangs = (Gang*)((char*)game + sizeof(Game));
     
     // Set up gang member pointers
-    for (int i = 0; i < cfg->max_gangs; i++) {
+    for (int i = 0; i < cfg->num_gangs; i++) {
         game->gangs[i].gang_id = i; // Pre-initialize gang IDs
-        game->gangs[i].members_count = 0;
-        game->gangs[i].members = (Member*)((char*)game->gangs + 
+        game->gangs[i].max_member_count = random_int(cfg->min_gang_size, cfg->max_gang_size);
+        game->gangs[i].num_alive_members = game->gangs[i].max_member_count;
+        game->gangs[i].members = (Member*)((char*)game->gangs +
                                        gangs_size + 
                                        i * cfg->max_gang_size * sizeof(Member));
     }
@@ -88,8 +84,8 @@ Game* setup_shared_memory_user(Config *cfg) {
     
     // Calculate sizes
     size_t game_size = sizeof(Game);
-    size_t gangs_size = cfg->max_gangs * sizeof(Gang);
-    size_t members_size = cfg->max_gangs * cfg->max_gang_size * sizeof(Member);
+    size_t gangs_size = cfg->num_gangs * sizeof(Gang);
+    size_t members_size = cfg->num_gangs * cfg->max_gang_size * sizeof(Member);
     size_t total_size = game_size + gangs_size + members_size;
     
     // Open existing shared memory without O_CREAT flag
@@ -126,7 +122,7 @@ Game* setup_shared_memory_user(Config *cfg) {
     fflush(stdout);
     
     // Set up member pointers for each gang
-    for (int i = 0; i < cfg->max_gangs; i++) {
+    for (int i = 0; i < cfg->num_gangs; i++) {
         game->gangs[i].members = (Member*)((char*)game->gangs + 
                                       gangs_size + 
                                       i * cfg->max_gang_size * sizeof(Member));

@@ -16,6 +16,7 @@
 #include "target_selection.h"
 #include "success_rate.h"  // For success rate calculation
 #include "shared_mem_utils.h"
+#include "random.h"  // For random number generation
 
 Game *shared_game = NULL;
 Gang *gang;
@@ -43,11 +44,14 @@ int main(int argc, char *argv[]) {
 
 
 
-    // validate gang ID
-    if (gang_id < 0 || gang_id >= config.max_gangs) {
-        fprintf(stderr, "Invalid gang ID: %d\n", gang_id);
+    // validate gang ID - check against actual number of gangs, not max possible
+    if (gang_id < 0 || gang_id >= config.num_gangs) {
+        fprintf(stderr, "Invalid gang ID: %d (num_gangs: %d, max_gangs: %d)\n", gang_id, config.num_gangs, config.max_gangs);
         exit(EXIT_FAILURE);
     }
+    
+    printf("Gang %d: Validation passed (num_gangs: %d, max_gangs: %d)\n", gang_id, config.num_gangs, config.max_gangs);
+    fflush(stdout);
 
     atexit(cleanup);
     signal(SIGINT, handle_sigint);
@@ -65,11 +69,6 @@ int main(int argc, char *argv[]) {
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
 
-    // Initialize members_count if needed
-    if (gang->members_count == 0) {
-        gang->members_count = config.max_gang_size;
-    }
-    
     // Initialize synchronization primitives
     pthread_mutex_init(&gang->gang_mutex, NULL);
     pthread_cond_init(&gang->prep_complete_cond, NULL); // once all members are ready
@@ -83,20 +82,60 @@ int main(int argc, char *argv[]) {
 
     printf("Gang %d process started...\n", gang_id);
     fflush(stdout);
+
+    printf("gang 0 member count %d\n", shared_game->gangs[0].max_member_count);
+    fflush(stdout);
+    
+    printf("Gang %d: About to initialize %d members\n", gang_id, gang->max_member_count);
+    fflush(stdout);
     
     // Initialize gang members
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         gang->members[i].gang_id = gang_id;
         gang->members[i].member_id = i;
         gang->members[i].rank = rand() % config.num_ranks;
         gang->members[i].prep_contribution = 0;
         gang->members[i].agent_id = -1;
         gang->members[i].suspicion = 0.0f;
+        gang->members[i].is_alive = true;
 
-        // Initialize attributes
-        for (int j = 0; j < NUM_ATTRIBUTES; j++) {
-            gang->members[i].attributes[j] = (rand() % 100)/100.0; // Random values for attributes
-        }
+        // Set up means and standard deviations for attributes
+        float means[NUM_ATTRIBUTES] = {
+            0.5f,  // ATTR_SMARTNESS - centered around 0.5
+            0.5f,  // ATTR_STEALTH - centered around 0.5
+            0.5f,  // ATTR_STRENGTH - centered around 0.5
+            0.4f,  // ATTR_TECH_SKILLS - slightly lower mean
+            0.6f,  // ATTR_BRAVERY - slightly higher mean
+            0.5f,  // ATTR_NEGOTIATION - centered around 0.5
+            0.5f   // ATTR_NETWORKING - centered around 0.5
+        };
+        
+        float stddevs[NUM_ATTRIBUTES] = {
+            0.15f,  // ATTR_SMARTNESS
+            0.15f,  // ATTR_STEALTH
+            0.15f,  // ATTR_STRENGTH
+            0.20f,  // ATTR_TECH_SKILLS - more variance
+            0.15f,  // ATTR_BRAVERY
+            0.15f,  // ATTR_NEGOTIATION
+            0.15f   // ATTR_NETWORKING
+        };
+        
+        // Define correlation matrix between attributes
+        // For example, smartness correlates with tech skills, strength with bravery, etc.
+        float correlation_matrix[NUM_ATTRIBUTES][NUM_ATTRIBUTES] = {
+            // SMARTNESS  STEALTH    STRENGTH   TECH       BRAVERY    NEGOTIATION NETWORKING
+            {  0.2f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f  }, // SMARTNESS
+            {  0.1f,      0.2f,      0.0f,      0.0f,      0.0f,      0.0f,      0.0f  }, // STEALTH
+            {  0.0f,      0.0f,      0.2f,      0.0f,      0.0f,      0.0f,      0.0f  }, // STRENGTH
+            {  0.15f,     0.1f,      0.0f,      0.2f,      0.0f,      0.0f,      0.0f  }, // TECH_SKILLS
+            {  0.0f,      0.0f,      0.15f,     0.0f,      0.2f,      0.0f,      0.0f  }, // BRAVERY
+            {  0.1f,      0.0f,      0.0f,      0.0f,      0.0f,      0.2f,      0.0f  }, // NEGOTIATION
+            {  0.1f,      0.0f,      0.0f,      0.0f,      0.1f,      0.15f,     0.2f  }  // NETWORKING
+        };
+        
+        // Generate attributes using multivariate Gaussian distribution
+        printf("Gang %d: Generating correlated attributes for member %d\n", gang_id, i);
+        generate_multivariate_attributes(gang->members[i].attributes, means, stddevs, correlation_matrix);
     }
     
     // Find the member with the highest rank - but don't select target here
@@ -115,7 +154,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Create threads for all gang members
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         // CRITICAL: Allocate memory for thread argument to avoid data race
         Member *thread_arg = &gang->members[i];
         if (thread_arg == NULL) {
@@ -151,9 +190,9 @@ int main(int argc, char *argv[]) {
     pthread_mutex_lock(&gang->gang_mutex);
     
     // Wait until all members are ready
-    while (gang->members_ready < gang->members_count) {
+    while (gang->members_ready < gang->num_alive_members) {
         printf("Gang %d: Main thread waiting for members to complete preparation (%d/%d ready)\n", 
-               gang_id, gang->members_ready, gang->members_count);
+               gang_id, gang->members_ready, gang->num_alive_members);
         fflush(stdout);
         
         // Wait for the condition that all members are ready
@@ -166,7 +205,7 @@ int main(int argc, char *argv[]) {
     
     // At this point we have the mutex locked and all members are ready
     printf("Gang %d: All members ready (%d/%d). Proceeding to calculate success rate.\n", 
-           gang_id, gang->members_ready, gang->members_count);
+           gang_id, gang->members_ready, gang->max_member_count);
     fflush(stdout);
     
     // All members are ready, calculate if the plan succeeds
@@ -196,7 +235,7 @@ int main(int argc, char *argv[]) {
     pthread_mutex_unlock(&gang->gang_mutex);
 
     // Wait for all threads to finish
-    for(int i = 0; i < config.max_gang_size; i++) {
+    for(int i = 0; i < gang->max_member_count; i++) {
         pthread_join(gang->members[i].thread, NULL);
     }
 
@@ -220,5 +259,8 @@ void cleanup() {
             perror("munmap failed");
         }
     }
+}
+
+void gang_init() {
 
 }

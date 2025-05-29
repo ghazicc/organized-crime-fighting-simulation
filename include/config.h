@@ -26,6 +26,7 @@ typedef struct {
     int difficulty_level;
     int max_difficulty;
     int timeout_period;
+    int num_gangs;
 } Config;
 
 int load_config(const char *filename, Config *config);
