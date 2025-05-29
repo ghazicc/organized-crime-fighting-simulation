@@ -25,13 +25,13 @@ void* actual_gang_member_thread_function(void* arg) {
         fflush(stdout);
         
         // Let the highest-ranked member select a target
-        TargetType selected_target = select_target(shm_ptrs.shared_game, gang, member->member_id);
+        TargetType selected_target = select_target(shm_ptrs.shared_game, gang, shm_ptrs.gang_members[member->gang_id], highest_rank_member_id);
         
         // Set preparation parameters based on the selected target
         set_preparation_parameters(gang, selected_target, NULL); // We'll need to pass config later
         
         // Reset all members' preparation levels
-        reset_preparation_levels(gang);
+        reset_preparation_levels(gang, shm_ptrs.gang_members[member->gang_id]);
         
         printf("Gang %d: Target selected by highest-ranked member, type: %d, prep time: %d, prep level: %d\n",
                member->gang_id, gang->target_type, gang->prep_time, gang->prep_level);

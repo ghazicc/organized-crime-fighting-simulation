@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
 
     // Wait for all threads to finish
     for(int i = 0; i < gang->max_member_count; i++) {
-        pthread_join(gang->members[i].thread, NULL);
+        pthread_join(members[i].thread, NULL);
     }
 
     // Cleanup resources

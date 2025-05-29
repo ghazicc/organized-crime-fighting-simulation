@@ -42,14 +42,14 @@ int find_highest_ranked_member(Gang *gang, Member *members) {
 
 
 
-TargetType select_target(Game *game, Gang *gang, int highest_rank_member_id) {
-    if (game == NULL || gang == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->max_member_count) {
+TargetType select_target(Game *game, Gang *gang, Member *members, int highest_rank_member_id) {
+    if (game == NULL || gang == NULL || members == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->max_member_count) {
         // Default to bank robbery if something's wrong
         return TARGET_BANK_ROBBERY;
     }
 
     // Get the highest-ranked member
-    Member *leader = &gang->members[highest_rank_member_id];
+    Member *leader = &members[highest_rank_member_id];
     
     // Initialize random seed
     srand(time(NULL) + gang->gang_id);
@@ -122,11 +122,11 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
     fflush(stdout);
 }
 
-void reset_preparation_levels(Gang *gang) {
-    if (gang == NULL) return;
+void reset_preparation_levels(Gang *gang, Member *members) {
+    if (gang == NULL || members == NULL) return;
     
     for (int i = 0; i < gang->max_member_count; i++) {
-        gang->members[i].prep_contribution = 0;
+        members[i].prep_contribution = 0;
     }
     
     printf("Gang %d preparation levels reset to 0\n", gang->gang_id);
