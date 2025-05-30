@@ -275,7 +275,7 @@ void evaluate_imprisonment_probability(PoliceOfficer* officer) {
     float knowledge_factor = officer->knowledge_level * 0.4f; // Up to 40%
     
     // Factor 2: Number of active agents
-    float agent_factor = (officer->num_agents / (float)MAX_AGENTS_PER_GANG) * 0.3f; // Up to 30%
+    float agent_factor = (officer->num_agents / (float)config.max_agents_per_gang) * 0.3f; // Up to 30%
     
     // Factor 3: Agent knowledge levels
     float avg_agent_knowledge = 0.0f;
@@ -300,7 +300,7 @@ void evaluate_imprisonment_probability(PoliceOfficer* officer) {
            officer->police_id, officer->gang_id_monitoring, total_probability);
     
     // Roll for imprisonment
-    if ((rand() % 100) / 100.0f < total_probability) {
+    if (random_float(0, 1) < total_probability) {
         imprison_gang(officer);
     }
 }
@@ -314,44 +314,30 @@ void imprison_gang(PoliceOfficer* officer) {
            officer->police_id, officer->gang_id_monitoring);
     
     pthread_mutex_lock(&police_force.arrest_mutex);
-    police_force.arrested_gangs[officer->gang_id_monitoring] = random_int(7, 20); // 7-20 time units
+    police_force.arrested_gangs[officer->gang_id_monitoring] = random_int(config.min_prison_period, config.max_prison_period); // 7-20 time units
     pthread_mutex_unlock(&police_force.arrest_mutex);
     
     // Mark plan as failed in shared memory
-    Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
-    pthread_mutex_lock(&gang->gang_mutex);
-    gang->plan_success = -1;
-    gang->plan_in_progress = 0;
-    gang->num_thwarted_plans++;
-    pthread_mutex_unlock(&gang->gang_mutex);
+    // Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
+    // pthread_mutex_lock(&gang->gang_mutex);
+    // gang->plan_success = -1;
+    // gang->plan_in_progress = 0;
+    LOCK_GAME_STATS();
+    shm_ptrs.shared_game->num_thwarted_plans++;
+    UNLOCK_GAME_STATS();
+    // pthread_mutex_unlock(&gang->gang_mutex);
     
     printf("POLICE: Gang %d imprisoned for %d time units\n", 
            officer->gang_id_monitoring, police_force.arrested_gangs[officer->gang_id_monitoring]);
 }
 
-void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptrs) {
+void take_police_action(PoliceOfficer* officer) {
     // Decision based on knowledge level
-    if (officer->knowledge_level > 0.7f && (rand() % 100) < 30) {
+    if (officer->knowledge_level > config.knowledge_threshold) {
         evaluate_imprisonment_probability(officer);
-    } else if (officer->knowledge_level > 0.5f && (rand() % 100) < 20) {
-        investigate_gang(officer);
     }
 }
 
-void investigate_gang(PoliceOfficer* officer) {
-    printf("POLICE: Officer %d investigating Gang %d\n", 
-           officer->police_id, officer->gang_id_monitoring);
-    
-    // Investigation increases knowledge slightly
-    officer->knowledge_level += 0.05f;
-    if (officer->knowledge_level > 1.0f) {
-        officer->knowledge_level = 1.0f;
-    }
-    
-    printf("POLICE: Officer %d investigation complete, knowledge level: %.3f\n", 
-           officer->police_id, officer->knowledge_level);
-    fflush(stdout);
-}
 
 void handle_gang_release(PoliceOfficer* officer) {
     int gang_id = officer->gang_id_monitoring;
