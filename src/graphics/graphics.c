@@ -202,7 +202,6 @@ static void box_game(Rectangle r,const Config *cfg, ShmPtrs snap){
 static void box_police(Rectangle r, ShmPtrs snap)
 {
     panel(r,"Police");
-    PoliceForce *pf = NULL;
     const Game *g = snap.shared_game;
     if (!g) {
         DrawText("No Game struct!",(int)r.x+PAD,(int)r.y+40,18,RED);
