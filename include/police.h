@@ -20,7 +20,6 @@ typedef struct {
     pthread_t thread;
 
     // Simple array of secret agent IDs managed by this police officer
-    int secret_agent_ids[MAX_AGENTS_PER_GANG];
     int num_agents;
     
     // Knowledge and monitoring
@@ -28,14 +27,14 @@ typedef struct {
     float intelligence_sharing;
     
     pthread_mutex_t officer_mutex;
+    int secret_agent_ids[MAX_AGENTS_PER_GANG];
+
 } PoliceOfficer;
 
 typedef struct {
-    PoliceOfficer officers[MAX_GANGS];
     int num_officers;
     
     // Arrested gangs array - indexed by gang_id, value is time until release (0 = not arrested)
-    int arrested_gangs[MAX_GANGS];
     pthread_mutex_t arrest_mutex;
     
     // Coordination
@@ -46,6 +45,10 @@ typedef struct {
     int total_arrests;
     int total_plans_thwarted;
     int total_agents_deployed;
+
+    int arrested_gangs[MAX_GANGS];
+    PoliceOfficer officers[MAX_GANGS];
+
 } PoliceForce;
 
 // Function declarations
