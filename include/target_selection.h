@@ -29,7 +29,7 @@ float sum_array(const float *array, int size);
  * @param gang The gang to search in
  * @return The ID of the member with the highest rank, or -1 if no members
  */
-int find_highest_ranked_member(Gang *gang);
+int find_highest_ranked_member(Gang *gang, Member *members);
 
 /**
  * Select a new target for the gang based on attributes of the highest-ranked member
@@ -38,8 +38,16 @@ int find_highest_ranked_member(Gang *gang);
  * @param gang The gang that's selecting a target
  * @param highest_rank_member_id The ID of the highest-ranked member
  * @return The selected target type
+ /**
+ * Select a new target for the gang based on attributes of the highest-ranked member
+ * 
+ * @param game The game state
+ * @param gang The gang that's selecting a target
+ * @param members The gang members array
+ * @param highest_rank_member_id The ID of the highest-ranked member
+ * @return The selected target type
  */
-TargetType select_target(Game *game, Gang *gang, int highest_rank_member_id);
+TargetType select_target(Game *game, Gang *gang, Member *members, int highest_rank_member_id);
 
 /**
  * Set the preparation parameters for a gang's target
@@ -54,7 +62,8 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
  * Reset all gang members' preparation contributions to 0
  * 
  * @param gang The gang to reset preparation levels for
+ * @param members The gang members array
  */
-void reset_preparation_levels(Gang *gang);
+void reset_preparation_levels(Gang *gang, Member *members);
 
 #endif // TARGET_SELECTION_H

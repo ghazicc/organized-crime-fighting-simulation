@@ -21,6 +21,8 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
     game->num_successfull_plans = 0;
     game->num_executed_agents = 0;
 
+    // Note: Gang pointers are now handled in shared_mem_utils.c through ShmPtrs
+
     char *binary_paths[] = {
         POLICE_EXECUTABLE,
         GANG_EXECUTABLE
@@ -68,12 +70,21 @@ int check_game_conditions(const Game *game, const Config *cfg) {
     // Check if the game has reached its maximum limits
 
     if (game->num_executed_agents >= cfg->max_executed_agents) {
+        printf("GAME OVER: Maximum executed agents reached (%d/%d)\n",
+               game->num_executed_agents, cfg->max_executed_agents);
+        fflush(stdout);
         return 0;
     }
     if (game->num_successfull_plans >= cfg->max_successful_plans) {
+        printf("GAME OVER: Maximum successful gang plans reached (%d/%d)\n",
+               game->num_successfull_plans, cfg->max_successful_plans);
+        fflush(stdout);
         return 0;
     }
     if (game->num_thwarted_plans >= cfg->max_thwarted_plans) {
+        printf("GAME OVER: Maximum thwarted plans reached (%d/%d)\n",
+               game->num_thwarted_plans, cfg->max_thwarted_plans);
+        fflush(stdout);
         return 0;
     }
     return 1;
