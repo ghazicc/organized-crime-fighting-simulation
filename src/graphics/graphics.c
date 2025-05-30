@@ -39,7 +39,7 @@ static Rectangle R_GAN = {NEW_GAN_X, 0,    NEW_GAN_W, WIN_H-150};
 
 /* gang-card constants */
 #define CARD_W_UPDATED 300.f     // Updated card width
-#define BASE_CARD_H 190.f        /* header + margins for gang info (increased for agent data) */
+#define BASE_CARD_H 220.f        /* header + margins for gang info (increased for XP/rank data) */
 static float hScroll = 0.f;
 static float vScroll = 0.f;
 
@@ -50,7 +50,7 @@ static float vScroll = 0.f;
 
 /* Spacing for members within the card's member grid */
 #define MEMBER_GRID_CELL_WIDTH 72.f  // Horizontal space allocated for one member (center to center)
-#define MEMBER_GRID_CELL_HEIGHT 120.f // Vertical space allocated for one member (increased for agent data)
+#define MEMBER_GRID_CELL_HEIGHT 140.f // Vertical space allocated for one member (increased for XP/rank data)
 
 
 /*──────────────────────── assets ───────────────────────────────*/
@@ -98,6 +98,17 @@ static void draw_member(float cx, float cy, const Member *m) {
     char knowledge_text[16];
     snprintf(knowledge_text, sizeof(knowledge_text), "K: %.0f%%", m->knowledge * 100.0f);
     DrawText(knowledge_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, DARKGRAY);
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+
+    // XP and Rank
+    char xp_text[20];
+    snprintf(xp_text, sizeof(xp_text), "XP: %d", m->XP);
+    DrawText(xp_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLUE);
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+    
+    char rank_text[20];
+    snprintf(rank_text, sizeof(rank_text), "Rank: %d", m->rank);
+    DrawText(rank_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, DARKGREEN);
     current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
 
     // Prep Contribution (Text and Progress Bar)
