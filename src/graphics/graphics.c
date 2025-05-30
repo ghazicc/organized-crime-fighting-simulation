@@ -8,6 +8,7 @@
 #include "config.h"
 #include "game.h"
 #include "gang.h"
+#include "police.h"
 #include "shared_mem_utils.h"
 
 #include <stdio.h>
@@ -22,15 +23,19 @@
 #define WIN_W 1400
 #define WIN_H 800
 #define SIDE_W 260
-#define POL_W  220
+#define POL_W  320
 #define POL_X  SIDE_W
 #define PAD    10
 #define COL_BG (Color){245,245,245,255}
 
-static Rectangle R_AGT = {0, 0,            SIDE_W, 470};
-static Rectangle R_GME = {0, WIN_H-150,    SIDE_W, 150};
-static Rectangle R_POL = {POL_X, 0,        POL_W , WIN_H};
-static Rectangle R_GAN = {POL_X+POL_W+4,0, WIN_W-(POL_X+POL_W+4), WIN_H};
+#define NEW_SIDE_W 320
+#define NEW_POL_W  320
+#define NEW_GAN_W  (WIN_W-NEW_POL_W)
+#define NEW_GAN_X  (NEW_POL_W)
+
+static Rectangle R_POL = {0, 0,        NEW_POL_W , WIN_H-150};
+static Rectangle R_GME = {0, WIN_H-150,    WIN_W, 150};
+static Rectangle R_GAN = {NEW_GAN_X, 0,    NEW_GAN_W, WIN_H-150};
 
 /* gang-card constants */
 #define CARD_W_UPDATED 300.f     // Updated card width
@@ -140,26 +145,38 @@ static void box_game(Rectangle r,const Config *cfg, ShmPtrs snap){
                         cfg->max_executed_agents),
              (int)(r.x+PAD),y,16,BLACK);
 }
-static void box_police(Rectangle r){
+// ──────────────── POLICE BOX ────────────────
+static void box_police(Rectangle r, ShmPtrs snap)
+{
     panel(r,"Police");
-    int sz=64;
-    int px=(int)(r.x+r.width/2-sz/2), py=(int)r.y+32;
-    DrawTextureEx(texPolice,(Vector2){(float)px,(float)py},0.0f,(float)sz/texPolice.width,WHITE);
-}
-static void box_agents(Rectangle r,const Config *cfg, ShmPtrs snap){
-    panel(r,"Agents");
-    int active=0;
-    for(int g_idx=0; g_idx < cfg->num_gangs; g_idx++) {
-        for(int m=0; m < snap.gangs[g_idx].max_member_count; m++) {
-                if(snap.gang_members[g_idx][m].is_alive &&
-                   snap.gang_members[g_idx][m].agent_id >= 0) active++;
+    PoliceForce *pf = NULL;
+    if (!snap.shared_game) {
+        DrawText("No Game struct!",(int)r.x+PAD,(int)r.y+40,18,RED);
+        return;
+    }
+    pf = &snap.shared_game->police_force;
+    int icon = 48;
+    int y = (int)r.y + 40;
+    DrawText("Arrested Gangs:",(int)r.x+PAD, y, 16, BLACK); y += 20;
+    for (int i = 0; i < MAX_GANGS_POLICE; ++i) {
+        if (pf->arrested_gangs[i] > 0) {
+            DrawText(TextFormat("Gang %d: %ds left", i, pf->arrested_gangs[i]), (int)r.x+PAD+10, y, 15, RED); y += 16;
         }
     }
-    int y=(int)r.y+40;
-    DrawText(TextFormat("Active  : %d",active),
-             (int)(r.x+PAD),y,18,BLACK); y+=22;
-    DrawText(TextFormat("Executed: %d",snap.shared_game->num_executed_agents),
-             (int)(r.x+PAD),y,18,BLACK);
+    y += 8;
+    DrawText("Officers:",(int)r.x+PAD, y, 16, BLACK); y += 20;
+    for (int i = 0; i < pf->num_officers && y < (int)(r.y + r.height - 60); ++i) {
+        PoliceOfficer *po = &pf->officers[i];
+        Color c = po->is_active ? DARKGREEN : GRAY;
+        // Draw police icon
+        DrawTextureEx(texPolice, (Vector2){r.x+PAD, (float)y}, 0.0f, (float)icon/(float)texPolice.width, WHITE);
+        float text_x = r.x+PAD+(float)icon+8.0f;
+        DrawText(TextFormat("ID: %d", po->police_id), (int)text_x, y, 16, c); y += 18;
+        DrawText(TextFormat("Gang: %d", po->gang_id_monitoring), (int)text_x, y, 15, BLACK); y += 16;
+        DrawText(TextFormat("Active: %s", po->is_active ? "YES" : "NO"), (int)text_x, y, 15, po->is_active ? DARKGREEN : GRAY); y += 16;
+        DrawText(TextFormat("Knowledge: %.2f", po->knowledge_level), (int)text_x, y, 15, BLACK); y += 18;
+        y += 4;
+    }
 }
 
 /*──────────────────────── gangs panel ──────────────────────────*/
@@ -309,6 +326,16 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
                 }
                 draw_member(member_center_x, member_center_y, &member_array_for_gang[m_loop_idx]);
                 drawn_member_visual_count++;
+
+                // After drawing member info, if member->agent_id >= 0, show agent data
+                if (member_array_for_gang[m_loop_idx].agent_id >= 0) {
+                    float ax = member_center_x - MEMBER_ICON_SIZE/2.0f;
+                    float ay = member_center_y + MEMBER_ICON_SIZE/2.0f + 2;
+                    DrawText(TextFormat("AgentID: %d", member_array_for_gang[m_loop_idx].agent_id), (int)ax, (int)ay, 12, RED); ay += 14;
+                    DrawText(TextFormat("K: %.2f", member_array_for_gang[m_loop_idx].knowledge), (int)ax, (int)ay, 12, BLACK); ay += 14;
+                    DrawText(TextFormat("S: %.2f", member_array_for_gang[m_loop_idx].suspicion), (int)ax, (int)ay, 12, BLACK); ay += 14;
+                    DrawText(TextFormat("F: %.2f", member_array_for_gang[m_loop_idx].faithfulness), (int)ax, (int)ay, 12, BLACK);
+                }
             }
         }
     }
@@ -369,8 +396,7 @@ int main(int argc, char *argv[]){
 
         BeginDrawing();
           ClearBackground(COL_BG);
-          box_police(R_POL);
-          box_agents(R_AGT,&cfg, snap);
+          box_police(R_POL, snap);
           box_game  (R_GME,&cfg, snap);
           box_gangs (R_GAN,&cfg, snap);
         EndDrawing();
