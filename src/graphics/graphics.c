@@ -172,7 +172,7 @@ static int collect_active(const Config*cfg,int *out, ShmPtrs snap){
     return n;
 }
 
-static void box_gangs(Rectangle r,const Config*cfg, ShmPtrs snap){
+static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
     panel(r,"Gangs");
 
     hScroll+= (float)(IsKeyDown(KEY_RIGHT)-IsKeyDown(KEY_LEFT))*12.f;
@@ -184,7 +184,7 @@ static void box_gangs(Rectangle r,const Config*cfg, ShmPtrs snap){
     if(vScroll<0) vScroll=0;
     // Vertical scroll limit also needs total content height, calculated later.
 
-    int idx[128]; // Assuming max 128 gangs
+    int idx[cfg->num_gangs];
     int total_active_gangs = collect_active(cfg,idx, snap);
 
     int members_per_row_on_card = 4;
