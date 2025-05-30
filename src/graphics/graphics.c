@@ -8,6 +8,7 @@
 #include "config.h"
 #include "game.h"
 #include "gang.h"
+#include "police.h"
 #include "shared_mem_utils.h"
 
 #include <stdio.h>
@@ -22,19 +23,23 @@
 #define WIN_W 1400
 #define WIN_H 800
 #define SIDE_W 260
-#define POL_W  220
+#define POL_W  320
 #define POL_X  SIDE_W
 #define PAD    10
 #define COL_BG (Color){245,245,245,255}
 
-static Rectangle R_AGT = {0, 0,            SIDE_W, 470};
-static Rectangle R_GME = {0, WIN_H-150,    SIDE_W, 150};
-static Rectangle R_POL = {POL_X, 0,        POL_W , WIN_H};
-static Rectangle R_GAN = {POL_X+POL_W+4,0, WIN_W-(POL_X+POL_W+4), WIN_H};
+#define NEW_SIDE_W 320
+#define NEW_POL_W  320
+#define NEW_GAN_W  (WIN_W-NEW_POL_W)
+#define NEW_GAN_X  (NEW_POL_W)
+
+static Rectangle R_POL = {0, 0,        NEW_POL_W , WIN_H-150};
+static Rectangle R_GME = {0, WIN_H-150,    WIN_W, 150};
+static Rectangle R_GAN = {NEW_GAN_X, 0,    NEW_GAN_W, WIN_H-150};
 
 /* gang-card constants */
 #define CARD_W_UPDATED 300.f     // Updated card width
-#define BASE_CARD_H 170.f        /* header + margins for gang info */
+#define BASE_CARD_H 190.f        /* header + margins for gang info (increased for agent data) */
 static float hScroll = 0.f;
 static float vScroll = 0.f;
 
@@ -45,7 +50,7 @@ static float vScroll = 0.f;
 
 /* Spacing for members within the card's member grid */
 #define MEMBER_GRID_CELL_WIDTH 72.f  // Horizontal space allocated for one member (center to center)
-#define MEMBER_GRID_CELL_HEIGHT 95.f // Vertical space allocated for one member (center to center)
+#define MEMBER_GRID_CELL_HEIGHT 120.f // Vertical space allocated for one member (increased for agent data)
 
 
 /*──────────────────────── assets ───────────────────────────────*/
@@ -85,40 +90,39 @@ static void draw_member(float cx, float cy, const Member *m) {
     Texture2D current_member_tex = (m->agent_id >= 0) ? texAgent : texGang;
     DrawTextureEx(current_member_tex, (Vector2){member_draw_start_x, member_draw_start_y}, 0.0f, MEMBER_ICON_SIZE / current_member_tex.width, WHITE);
 
-    // Rank (on icon, top-right of icon space)
-    char rank_text[8];
     // Info below icon
-    float current_info_y = member_draw_start_y + MEMBER_ICON_SIZE + 4; // Start Y for text below icon
+    float current_info_y = member_draw_start_y + MEMBER_ICON_SIZE + 8; // More space below icon
     float text_x = member_draw_start_x;
 
     // Knowledge
     char knowledge_text[16];
     snprintf(knowledge_text, sizeof(knowledge_text), "K: %.0f%%", m->knowledge * 100.0f);
     DrawText(knowledge_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, DARKGRAY);
-    current_info_y += MEMBER_INFO_LINE_HEIGHT;
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
 
     // Prep Contribution (Text and Progress Bar)
     float prep_pct = m->prep_contribution > 100 ? 100.0f : (float)m->prep_contribution;
     Color prep_bar_color = (prep_pct > 70) ? DARKGREEN : (prep_pct > 30 ? ORANGE : RED);
-    
     char prep_text[16];
     snprintf(prep_text, sizeof(prep_text), "P: %.0f%%", prep_pct);
     DrawText(prep_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
-    
-    // Draw bar next to "P: XX%" text, aligned to the right edge of the icon space
-    float prep_text_width_measured = MeasureText("P:100%", MEMBER_INFO_FONT_SIZE); // Measure widest possible prep text
+    float prep_text_width_measured = (float)MeasureText("P:100%", MEMBER_INFO_FONT_SIZE); // Cast to float
     float bar_start_x = text_x + prep_text_width_measured + 2;
     float bar_available_width = (member_draw_start_x + MEMBER_ICON_SIZE) - bar_start_x;
-    if (bar_available_width < 10) bar_available_width = 10; // min width for visibility
-    
+    if (bar_available_width < 10) bar_available_width = 10;
     DrawRectangle((int)bar_start_x, (int)current_info_y + 1, (int)bar_available_width, MEMBER_INFO_FONT_SIZE - 2, LIGHTGRAY);
     DrawRectangle((int)bar_start_x, (int)current_info_y + 1, (int)(bar_available_width * prep_pct / 100.f), MEMBER_INFO_FONT_SIZE - 2, prep_bar_color);
-    current_info_y += MEMBER_INFO_LINE_HEIGHT;
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
 
-    // Agent status text (if applicable)
+    // Agent status and data (if applicable)
     if (m->agent_id >= 0) {
         DrawText("AGENT", (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, RED);
-        // current_info_y += MEMBER_INFO_LINE_HEIGHT; // If more info were to follow
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("AgentID: %d", m->agent_id), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, RED);
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("S: %.2f", m->suspicion), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("F: %.2f", m->faithfulness), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
     }
 }
 
@@ -140,26 +144,38 @@ static void box_game(Rectangle r,const Config *cfg, ShmPtrs snap){
                         cfg->max_executed_agents),
              (int)(r.x+PAD),y,16,BLACK);
 }
-static void box_police(Rectangle r){
+// ──────────────── POLICE BOX ────────────────
+static void box_police(Rectangle r, ShmPtrs snap)
+{
     panel(r,"Police");
-    int sz=64;
-    int px=(int)(r.x+r.width/2-sz/2), py=(int)r.y+32;
-    DrawTextureEx(texPolice,(Vector2){(float)px,(float)py},0.0f,(float)sz/texPolice.width,WHITE);
-}
-static void box_agents(Rectangle r,const Config *cfg, ShmPtrs snap){
-    panel(r,"Agents");
-    int active=0;
-    for(int g_idx=0; g_idx < cfg->num_gangs; g_idx++) {
-        for(int m=0; m < snap.gangs[g_idx].max_member_count; m++) {
-                if(snap.gang_members[g_idx][m].is_alive &&
-                   snap.gang_members[g_idx][m].agent_id >= 0) active++;
+    PoliceForce *pf = NULL;
+    if (!snap.shared_game) {
+        DrawText("No Game struct!",(int)r.x+PAD,(int)r.y+40,18,RED);
+        return;
+    }
+    pf = &snap.shared_game->police_force;
+    int icon = 48;
+    int y = (int)r.y + 40;
+    DrawText("Arrested Gangs:",(int)r.x+PAD, y, 16, BLACK); y += 20;
+    for (int i = 0; i < MAX_GANGS_POLICE; ++i) {
+        if (pf->arrested_gangs[i] > 0) {
+            DrawText(TextFormat("Gang %d: %ds left", i, pf->arrested_gangs[i]), (int)r.x+PAD+10, y, 15, RED); y += 16;
         }
     }
-    int y=(int)r.y+40;
-    DrawText(TextFormat("Active  : %d",active),
-             (int)(r.x+PAD),y,18,BLACK); y+=22;
-    DrawText(TextFormat("Executed: %d",snap.shared_game->num_executed_agents),
-             (int)(r.x+PAD),y,18,BLACK);
+    y += 8;
+    DrawText("Officers:",(int)r.x+PAD, y, 16, BLACK); y += 20;
+    for (int i = 0; i < pf->num_officers && y < (int)(r.y + r.height - 60); ++i) {
+        PoliceOfficer *po = &pf->officers[i];
+        Color c = po->is_active ? DARKGREEN : GRAY;
+        // Draw police icon
+        DrawTextureEx(texPolice, (Vector2){r.x+PAD, (float)y}, 0.0f, (float)icon/(float)texPolice.width, WHITE);
+        float text_x = r.x+PAD+(float)icon+8.0f;
+        DrawText(TextFormat("ID: %d", po->police_id), (int)text_x, y, 16, c); y += 18;
+        DrawText(TextFormat("Gang: %d", po->gang_id_monitoring), (int)text_x, y, 15, BLACK); y += 16;
+        DrawText(TextFormat("Active: %s", po->is_active ? "YES" : "NO"), (int)text_x, y, 15, po->is_active ? DARKGREEN : GRAY); y += 16;
+        DrawText(TextFormat("Knowledge: %.2f", po->knowledge_level), (int)text_x, y, 15, BLACK); y += 18;
+        y += 4;
+    }
 }
 
 /*──────────────────────── gangs panel ──────────────────────────*/
@@ -204,7 +220,7 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         int alive_members_count = current_gang->num_alive_members;
         
         int num_member_rows_on_card = (alive_members_count + members_per_row_on_card - 1) / members_per_row_on_card;
-        float card_actual_height = BASE_CARD_H + (num_member_rows_on_card * MEMBER_GRID_CELL_HEIGHT);
+        float card_actual_height = BASE_CARD_H + ((float)num_member_rows_on_card * MEMBER_GRID_CELL_HEIGHT); // Cast to float
 
         int panel_col_idx = k % gangs_per_row_in_panel;
 
@@ -238,7 +254,7 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         }
 
 
-        float current_card_x = (r.x + PAD) + panel_col_idx * (CARD_W_UPDATED + card_gap_x) - hScroll;
+        float current_card_x = (float)(r.x + PAD) + (float)panel_col_idx * (CARD_W_UPDATED + card_gap_x) - hScroll; // Cast to float
         float current_card_y = current_panel_row_y_start;
                                                                                             
         // Culling: Skip drawing if card is entirely out of view
@@ -298,10 +314,8 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         int drawn_member_visual_count = 0;
         for (int m_loop_idx = 0; m_loop_idx < current_gang->max_member_count; m_loop_idx++) {
             if (member_array_for_gang[m_loop_idx].is_alive) {
-                // Calculate center for the member's drawing area
-                float member_center_x = text_start_x_in_card + (drawn_member_visual_count % members_per_row_on_card) * MEMBER_GRID_CELL_WIDTH + (MEMBER_GRID_CELL_WIDTH / 2.0f) - (PAD/2.0f); // Adjust X to be centered in cell
+                float member_center_x = text_start_x_in_card + (drawn_member_visual_count % members_per_row_on_card) * MEMBER_GRID_CELL_WIDTH + (MEMBER_GRID_CELL_WIDTH / 2.0f) - (PAD/2.0f);
                 float member_center_y = member_grid_y_offset_in_card + (drawn_member_visual_count / members_per_row_on_card) * MEMBER_GRID_CELL_HEIGHT + (MEMBER_GRID_CELL_HEIGHT / 2.0f);
-                
                 if (m_loop_idx == leader_member_idx) {
                     char leader_label[] = "Leader";
                     int leader_text_width = MeasureText(leader_label, 12);
@@ -363,19 +377,14 @@ int main(int argc, char *argv[]){
     texAgent  = mustLoad(ASSETS_PATH"agent.png");
     texPolice = mustLoad(ASSETS_PATH"police.png");
     SetTargetFPS(60);
-
     while(!WindowShouldClose()){
-
-
         BeginDrawing();
           ClearBackground(COL_BG);
-          box_police(R_POL);
-          box_agents(R_AGT,&cfg, snap);
+          box_police(R_POL, snap);
           box_game  (R_GME,&cfg, snap);
           box_gangs (R_GAN,&cfg, snap);
         EndDrawing();
     }
-
     UnloadTexture(texGang);
     UnloadTexture(texAgent);
     UnloadTexture(texPolice);
