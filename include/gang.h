@@ -23,6 +23,7 @@ typedef struct {
     int timestamp;      // When this info was shared
 } InformationPacket;
 
+#define MAX_ASKERS 20
 
 typedef enum {
     TARGET_BANK_ROBBERY,
@@ -61,7 +62,12 @@ typedef struct {
     float faithfulness; // Faithfulness level of the agent
     pthread_t thread; // Thread for the member
     float attributes[NUM_ATTRIBUTES];
-    
+    float discretion;       // Ability to hide suspicion when asking questions
+    float shrewdness;       // Ability to extract information
+    int askers[MAX_ASKERS];
+    int askers_count;
+
+
     // Information spreading system
     InformationPacket received_info[5]; // Last 5 pieces of information received
     int info_count;                     // Number of information packets received
@@ -88,7 +94,7 @@ typedef struct {
     int last_info_spread_time;           // Last time information was spread
     int info_spread_interval;            // Random interval for spreading info
     float leader_misinformation_chance;  // Chance leader spreads false info
-    
+
     // Synchronization variables
     pthread_mutex_t gang_mutex;          // Mutex for accessing gang data
     pthread_cond_t prep_complete_cond;   // Condition variable to signal preparation completion

@@ -4,11 +4,11 @@
 
 #ifndef POLICE_H
 #define POLICE_H
-#define MAX_GANGS 10
+#define POLICE_MAX_GANGS 10
 #include <pthread.h>
 
 typedef struct {
-    int jailed_gangs[MAX_GANGS];
+    int jailed_gangs[POLICE_MAX_GANGS];
     pthread_t monitor_thread;
     pthread_t action_thread;
 } Police;
