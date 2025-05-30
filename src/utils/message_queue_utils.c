@@ -7,7 +7,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <stdio.h>
-
+#include <errno.h>
 
 int create_message_queue(int key) {
     int msgid = msgget(key, IPC_CREAT | 0666);
@@ -29,6 +29,16 @@ int send_message(int msgid, Message *message) {
 int receive_message(int msgid, Message *message, long mtype) {
     if (msgrcv(msgid, message, MESSAGE_SIZE, mtype, 0) == -1) {
         perror("msgrcv");
+        return -1;
+    }
+    return 0;
+}
+
+int receive_message_nonblocking(int msgid, Message *message, long mtype) {
+    if (msgrcv(msgid, message, MESSAGE_SIZE, mtype, IPC_NOWAIT) == -1) {
+        if (errno != ENOMSG) {  // ENOMSG means no message available
+            perror("msgrcv_nonblocking");
+        }
         return -1;
     }
     return 0;
