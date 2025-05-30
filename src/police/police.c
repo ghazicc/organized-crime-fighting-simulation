@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include "config.h"
 #include "shared_mem_utils.h"
@@ -13,6 +14,7 @@
 #include <unistd.h>
 
 #include "random.h"
+#include "semaphores_utils.h"
 
 PoliceForce police_force;
 Game *shared_game = NULL;
@@ -21,24 +23,23 @@ ShmPtrs shm_ptrs;
 void cleanup();
 void handle_sigint(int signum);
 
-void init_police_force(Game *shared_game, Config *config) {
+void init_police_force(Config *config) {
     printf("POLICE: Initializing police force with %d officers\n", config->num_gangs);
 
     // Initialize police force structure
     police_force.num_officers = config->num_gangs;
     police_force.shutdown_requested = false;
-    police_force.total_arrests = 0;
-    police_force.total_plans_thwarted = 0;
-    police_force.total_agents_deployed = 0;
 
     // Initialize mutexes
     pthread_mutex_init(&police_force.police_mutex, NULL);
     pthread_mutex_init(&police_force.arrest_mutex, NULL);
 
     // Initialize arrested gangs array (0 = not arrested)
-    for (int i = 0; i < MAX_GANGS; i++) {
-        police_force.arrested_gangs[i] = 0;
-    }
+    // for (int i = 0; i < MAX_GANGS; i++) {
+    //     police_force.arrested_gangs[i] = 0;
+    // }
+
+    memset(police_force.arrested_gangs, 0, sizeof(int) * MAX_GANGS);
 
     // Initialize each police officer
     for (int i = 0; i < config->num_gangs; i++) {
@@ -46,11 +47,8 @@ void init_police_force(Game *shared_game, Config *config) {
         officer->police_id = i;
         officer->gang_id_monitoring = i;  // Officer i monitors gang i
         officer->is_active = true;
-        officer->shared_game = shared_game;
-        officer->config = config;
         officer->num_agents = 0;
         officer->knowledge_level = 0.0f;
-        officer->intelligence_sharing = 0.7f; // 70% sharing rate
 
         // Initialize officer mutex
         pthread_mutex_init(&officer->officer_mutex, NULL);
@@ -154,7 +152,7 @@ void* police_officer_thread(void* arg) {
 }
 
 void monitor_gang_activity(PoliceOfficer* officer) {
-    Gang *gang = &officer->shared_game->gangs[officer->gang_id_monitoring];
+    Gang *gang = shm_ptrs.gangs[officer->gang_id_monitoring];
 
     // Check for suspicious activity or plan execution
     pthread_mutex_lock(&gang->gang_mutex);
@@ -165,14 +163,15 @@ void monitor_gang_activity(PoliceOfficer* officer) {
 
         // Determine if we should arrest based on knowledge and random chance
         bool should_arrest = false;
-        float arrest_probability = 0.1;  // Base probability
+        double arrest_probability = 0.1;  // Base probability
 
         // Increase probability based on knowledge level
         arrest_probability += officer->knowledge_level * 0.3;
 
+        Member **members = shm_ptrs.gang_members[officer->gang_id_monitoring];
         // Check for secret agents in gang (they provide intelligence)
         for (int i = 0; i < gang->max_member_count; i++) {
-            if (gang->members[i].is_alive && gang->members[i].agent_id >= 0) {
+            if (members[i]->is_alive && members[i]->agent_id >= 0) {
                 // Check if this agent ID is in our managed list
                 for (int j = 0; j < officer->num_agents; j++) {
                     if (officer->secret_agent_ids[j] == gang->members[i].agent_id) {

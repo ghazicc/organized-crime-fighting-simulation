@@ -22,9 +22,8 @@ typedef struct Game {
 
 typedef struct {
     Game *shared_game;
-    Gang *gangs; // Pointer to gangs array, dynamically allocated after Game
-    Member **gang_members; // Array of pointers to each gang's member array
-    Police *police; // Pointer to police structure, dynamically allocated after Game
+    Gang **gangs; // Pointer to gangs array, dynamically allocated after Game
+    Member ***gang_members; // Array of pointers to each gang's member array
 } ShmPtrs;
 
 // Still can keep these (but optional now)

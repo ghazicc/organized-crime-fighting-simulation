@@ -10,8 +10,8 @@
 #include "game.h"
 #include "config.h"
 
-#define MAX_GANGS 10
-#define MAX_AGENTS_PER_GANG 10
+#define MAX_GANGS 20
+#define MAX_AGENTS_PER_GANG 20
 
 typedef struct {
     int police_id;
@@ -24,8 +24,7 @@ typedef struct {
     
     // Knowledge and monitoring
     float knowledge_level;
-    float intelligence_sharing;
-    
+
     pthread_mutex_t officer_mutex;
     int secret_agent_ids[MAX_AGENTS_PER_GANG];
 
@@ -33,7 +32,7 @@ typedef struct {
 
 typedef struct {
     int num_officers;
-    
+
     // Arrested gangs array - indexed by gang_id, value is time until release (0 = not arrested)
     pthread_mutex_t arrest_mutex;
     
@@ -41,11 +40,6 @@ typedef struct {
     pthread_mutex_t police_mutex;
     bool shutdown_requested;
     
-    // Statistics
-    int total_arrests;
-    int total_plans_thwarted;
-    int total_agents_deployed;
-
     int arrested_gangs[MAX_GANGS];
     PoliceOfficer officers[MAX_GANGS];
 
