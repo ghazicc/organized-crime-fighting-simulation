@@ -13,9 +13,9 @@
 #include <unistd.h>
 #include <time.h>
 
-void secret_agent_init(Game* shared_game, Member* member) {
+void secret_agent_init(ShmPtrs* shm_ptrs, Member* member) {
     // Find the actual member in shared memory
-    Member* shared_member = &shared_game->gangs[member->gang_id].members[member->member_id];
+    Member* shared_member = &shm_ptrs->gang_members[member->gang_id][member->member_id];
     // Initialize attributes in shared memory
     shared_member->knowledge = 0.0f;
     shared_member->suspicion = 0.0f;
@@ -25,8 +25,8 @@ void secret_agent_init(Game* shared_game, Member* member) {
     shared_member->askers_count = 0;
 }
 
-void secret_agent_record_asker(Game* shared_game,Config config, Member* agent, int asker_id) {
-  Member* shared_agent = &shared_game->gangs[agent->gang_id].members[agent->member_id];
+void secret_agent_record_asker(ShmPtrs* shm_ptrs,Config config, Member* agent, int asker_id) {
+  Member* shared_agent = &shm_ptrs->gang_members[agent->gang_id][agent->member_id];
     if (shared_agent->askers_count < config.max_askers) {
         for (int i = 0;i<shared_agent->askers_count;i++) {
             if (shared_agent->askers[i] == asker_id) {
@@ -37,9 +37,9 @@ void secret_agent_record_asker(Game* shared_game,Config config, Member* agent, i
     }
 }
 
-void secret_agent_ask_member(Game* shared_game,Member* agent,Member *target) {
-    Member* shared_agent = &shared_game->gangs[agent->gang_id].members[agent->member_id];
-    Member* shared_target = &shared_game->gangs[target->gang_id].members[target->member_id];
+void secret_agent_ask_member(ShmPtrs* shm_ptrs,Member* agent,Member *target) {
+    Member* shared_agent = &shm_ptrs->gang_members[agent->gang_id][agent->member_id];
+    Member* shared_target = &shm_ptrs->gang_members[target->gang_id][target->member_id];
 
     if (shared_target->agent_id > 0) {
         float knowledge_change = shared_agent->shrewdness * (shared_target->knowledge - 0.5f);
@@ -49,12 +49,12 @@ void secret_agent_ask_member(Game* shared_game,Member* agent,Member *target) {
             shared_agent->knowledge = 0.0f;
         }
     }else {
-            Gang* gang = &shared_game->gangs[shared_target->gang_id];
+            Gang* gang = &shm_ptrs->gangs[shared_target->gang_id];
             int max_rank = 0;
             for (int i = 0; i < gang->max_member_count; i++) {
-                if (gang->members[i].is_alive)
-                    if (gang->members[i].rank > max_rank) {
-                        max_rank = gang->members[i].rank;
+                if (shm_ptrs->gang_members[gang->gang_id][i].is_alive)
+                    if (shm_ptrs->gang_members[gang->gang_id][i].rank > max_rank) {
+                        max_rank = shm_ptrs->gang_members[gang->gang_id][i].rank;
                     }
             }
 
@@ -78,15 +78,15 @@ void secret_agent_ask_member(Game* shared_game,Member* agent,Member *target) {
 
     }
 
-void conduct_internal_investigation(Config config, Game* shared_game, int gang_id) {
-    Gang *gang = &shared_game->gangs[gang_id];
+void conduct_internal_investigation(Config config, ShmPtrs* shm_ptrs, int gang_id) {
+    Gang *gang = &shm_ptrs->gangs[gang_id];;
     int max_rank = -1;
     int investigator_idx = -1;
 
     for (int i = 0; i < gang->max_member_count; i++) {
-        if (gang->members[i].is_alive)
-            if (gang->members[i].rank > max_rank) {
-                max_rank = gang->members[i].rank;
+        if (shm_ptrs->gang_members[gang->gang_id][i].is_alive)
+            if (shm_ptrs->gang_members[gang->gang_id][i].rank > max_rank) {
+                max_rank = shm_ptrs->gang_members[gang->gang_id][i].rank;
                 investigator_idx = i;
             }
     }
@@ -95,12 +95,11 @@ void conduct_internal_investigation(Config config, Game* shared_game, int gang_i
         return;
     }
 
-    Member* investigator = &gang->members[investigator_idx];
+    Member* investigator = &shm_ptrs->gang_members[gang->gang_id][investigator_idx];
 
     for (int gidx =0;gidx<gang->max_member_count;gidx++) {
-        if (gang->members[gidx].is_alive) {
-            Member *g = &gang->members[gidx];
-
+        if (shm_ptrs->gang_members[gang->gang_id][gidx].is_alive) {
+            Member *g = &shm_ptrs->gang_members[gang->gang_id][gidx];
             if (g->agent_id>0) {
                 float suspicion_increase = investigator->shrewdness*g->suspicion;
                 g->suspicion += suspicion_increase;
@@ -110,7 +109,7 @@ void conduct_internal_investigation(Config config, Game* shared_game, int gang_i
             for (int j = 0;j<g->askers_count;j++) {
                 int asker_id = g->askers[j];
                 for (int k = 0;k<gang->max_member_count;k++) {
-                    Member *agent_candidate = &gang->members[k];
+                    Member *agent_candidate = &shm_ptrs->gang_members[gang->gang_id][k];
                     if (agent_candidate->member_id == asker_id) {
                         float suspicion_increase = investigator->shrewdness * (1.0f - g->suspicion);
                         agent_candidate->suspicion += suspicion_increase;
@@ -125,10 +124,10 @@ void conduct_internal_investigation(Config config, Game* shared_game, int gang_i
     }
 
     for (int i = 0;i<gang->max_member_count;i++) {
-        if (gang->members[i].is_alive) {
-            Member *m = &gang->members[i];
+        if (shm_ptrs->gang_members[gang->gang_id][i].is_alive) {
+            Member *m = &shm_ptrs->gang_members[gang->gang_id][i];
             if (m->agent_id>0 && m->suspicion > config.suspicion_threshold) {
-                shared_game->num_executed_agents++;
+                shm_ptrs->shared_game->num_executed_agents++;
 
             }
         }
