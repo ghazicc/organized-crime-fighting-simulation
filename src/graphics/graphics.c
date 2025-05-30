@@ -9,6 +9,7 @@
 #include "game.h"
 #include "gang.h"
 #include "shared_mem_utils.h"
+#include "semaphores_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +81,13 @@ static void rebuild_pointers(Game *hdr,const Config *cfg){
     for(int i=0;i<cfg->num_gangs;i++){
         snap.gang_members[i] = (Member*)(base+offsetMembers+
                                (size_t)i * cfg->max_gang_size * sizeof(Member));
+        
+        // Debug: Print gang statistics to verify data integrity
+        if (i < 2) { // Only print for first 2 gangs to avoid spam
+            printf("GRAPHICS: Gang %d - Success: %d, Thwarted: %d, Members: %d\n", 
+                   i, snap.gangs[i].num_successful_plans, snap.gangs[i].num_thwarted_plans,
+                   snap.gangs[i].num_alive_members);
+        }
     }
     snap.police = NULL; /* not rendered */
 }
@@ -405,8 +413,20 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
+    // Initialize semaphores for synchronization
+    if (init_semaphores() != 0) {
+        fprintf(stderr, "Graphics: Failed to initialize semaphores\n");
+        munmap(shm_ptr, total_shm_size);
+        CloseWindow();
+        return 1;
+    }
+
     while(!WindowShouldClose()){
+        // Use semaphore to ensure consistent snapshot of shared memory
+        LOCK_GAME_STATS();
         memcpy(snapshot_buffer,shm_ptr,total_shm_size);
+        UNLOCK_GAME_STATS();
+        
         rebuild_pointers(snapshot_buffer,&cfg);
 
         BeginDrawing();
@@ -420,6 +440,7 @@ int main(int argc, char *argv[]){
 
     UnloadTexture(texGang); UnloadTexture(texAgent); UnloadTexture(texPolice);
     CloseWindow();
+    cleanup_semaphores();
     munmap(shm_ptr,total_shm_size);
     free(snapshot_buffer);
     return 0;
