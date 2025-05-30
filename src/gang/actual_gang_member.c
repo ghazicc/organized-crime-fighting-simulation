@@ -171,6 +171,25 @@ void* actual_gang_member_thread_function(void* arg) {
                 } else {
                     printf("Gang %d: Member %d disappointed about failed plan...\n", 
                            gang->gang_id, member->member_id);
+                    
+                    // Conduct internal investigation if this is the highest-ranked member
+                    // and the plan was thwarted (failed)
+                    if (member->member_id == highest_rank_member_id) {
+                        printf("Gang %d: Plan thwarted! Highest-ranked member %d conducting internal investigation\n",
+                               member->gang_id, member->member_id);
+                        fflush(stdout);
+                        
+                        // Unlock mutex before investigation to avoid deadlock
+                        pthread_mutex_unlock(&gang->gang_mutex);
+                        
+                        conduct_internal_investigation(*config, &shm_ptrs, member->gang_id);
+                        
+                        printf("Gang %d: Internal investigation completed after thwarted plan\n", member->gang_id);
+                        fflush(stdout);
+                        
+                        // Re-lock mutex for cleanup
+                        pthread_mutex_lock(&gang->gang_mutex);
+                    }
                 }
                 
                 // Unlock the mutex
@@ -183,28 +202,6 @@ void* actual_gang_member_thread_function(void* arg) {
         printf("Gang %d, Member %d: Resting before next plan\n", 
                member->gang_id, member->member_id);
         fflush(stdout);
-        
-        // Conduct internal investigation if this is the highest-ranked member
-        // and enough time has passed since the last investigation
-        if (member->member_id == highest_rank_member_id) {
-            // Check if it's time for an internal investigation
-            // For simplicity, conduct investigation every few plans
-            static int plans_since_investigation = 0;
-            plans_since_investigation++;
-            
-            if (plans_since_investigation >= 3) { // Investigate every 3 plans
-                printf("Gang %d: Highest-ranked member %d conducting internal investigation\n",
-                       member->gang_id, member->member_id);
-                fflush(stdout);
-                
-                conduct_internal_investigation(*config, &shm_ptrs, member->gang_id);
-                plans_since_investigation = 0;
-                
-                printf("Gang %d: Internal investigation completed\n", member->gang_id);
-                fflush(stdout);
-            }
-        }
-        
         sleep(1);
     }
     
