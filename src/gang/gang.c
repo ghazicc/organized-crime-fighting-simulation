@@ -200,16 +200,18 @@ int main(int argc, char *argv[]) {
     }
 
     // Create threads for all gang members
+    ThreadArgs* thread_args = malloc(gang->max_member_count * sizeof(ThreadArgs));
     for(int i = 0; i < gang->max_member_count; i++) {
-        // Pass the member from the local members array
-        Member *thread_arg = &members[i];
+        // Set up thread arguments with both member and config
+        thread_args[i].member = &members[i];
+        thread_args[i].config = &config;
         
         // Create thread for each member
         int ret;
         pthread_t thread_id;
         
         printf("Creating gang member thread %d\n", i);
-        ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
+        ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, &thread_args[i]);
         
         members[i].thread = thread_id;
 

@@ -6,6 +6,8 @@
 #include "success_rate.h" // For success rate calculation
 #include "config.h"
 #include "target_selection.h"
+#include "secret_agent_utils.h" // For secret agent functionality
+#include "message.h" // For message handling
 
 extern ShmPtrs shm_ptrs;
 extern int highest_rank_member_id;
@@ -14,10 +16,20 @@ extern volatile int should_terminate; // Flag for clean termination
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
     fflush(stdout);
-    Member *member = (Member*)arg;
+    ThreadArgs *thread_args = (ThreadArgs*)arg;
+    Member *member = thread_args->member;
+    Config *config = thread_args->config;
     Gang *gang = &shm_ptrs.gangs[member->gang_id];
     printf("Gang member %d in gang %d started\n", member->member_id, member->gang_id);
     fflush(stdout);
+    
+    // Initialize secret agent attributes if this member is an agent
+    if (member->agent_id >= 0) {
+        secret_agent_init(&shm_ptrs, member);
+        printf("Gang %d, Member %d: Initialized as secret agent with ID %d\n", 
+               member->gang_id, member->member_id, member->agent_id);
+        fflush(stdout);
+    }
     
     // Check if this is the highest-ranked member in the gang
     if (member->member_id == highest_rank_member_id) {
@@ -73,6 +85,41 @@ void* actual_gang_member_thread_function(void* arg) {
         
         // Preparation phase for this plan
         while (1) {
+            // Secret agent specific activities during preparation
+            if (member->agent_id >= 0) {
+                // Secret agents gather information by asking other gang members
+                // Randomly select another gang member to ask about the plan
+                if (gang->num_alive_members > 1 && rand() % 4 == 0) { // 25% chance per iteration
+                    int target_member_id = rand() % gang->max_member_count;
+                    if (target_member_id != member->member_id && 
+                        shm_ptrs.gang_members[member->gang_id][target_member_id].is_alive) {
+                        
+                        Member* target_member = &shm_ptrs.gang_members[member->gang_id][target_member_id];
+                        
+                        printf("Gang %d, Agent %d: Asking member %d for information\n",
+                               member->gang_id, member->member_id, target_member_id);
+                        fflush(stdout);
+                        
+                        // Record this member as having been asked for information
+                        // This is needed for internal investigations later
+                        secret_agent_record_asker(&shm_ptrs, *config, target_member, member->member_id);
+                        
+                        // Gather information from the target member
+                        secret_agent_ask_member(&shm_ptrs, member, target_member);
+                        
+                        printf("Gang %d, Agent %d: Information gathering complete, knowledge: %.2f, suspicion: %.2f\n",
+                               member->gang_id, member->member_id, 
+                               shm_ptrs.gang_members[member->gang_id][member->member_id].knowledge,
+                               shm_ptrs.gang_members[member->gang_id][member->member_id].suspicion);
+                        fflush(stdout);
+                    }
+                }
+                
+                // TODO: Handle police requests for knowledge reporting
+                // This would require access to police message queue and config
+                // For now, we'll skip this part until message queue access is added
+            }
+            
             // Simulate member contributing to preparation
             member->prep_contribution += rand() % 10;
             
@@ -136,6 +183,28 @@ void* actual_gang_member_thread_function(void* arg) {
         printf("Gang %d, Member %d: Resting before next plan\n", 
                member->gang_id, member->member_id);
         fflush(stdout);
+        
+        // Conduct internal investigation if this is the highest-ranked member
+        // and enough time has passed since the last investigation
+        if (member->member_id == highest_rank_member_id) {
+            // Check if it's time for an internal investigation
+            // For simplicity, conduct investigation every few plans
+            static int plans_since_investigation = 0;
+            plans_since_investigation++;
+            
+            if (plans_since_investigation >= 3) { // Investigate every 3 plans
+                printf("Gang %d: Highest-ranked member %d conducting internal investigation\n",
+                       member->gang_id, member->member_id);
+                fflush(stdout);
+                
+                conduct_internal_investigation(*config, &shm_ptrs, member->gang_id);
+                plans_since_investigation = 0;
+                
+                printf("Gang %d: Internal investigation completed\n", member->gang_id);
+                fflush(stdout);
+            }
+        }
+        
         sleep(1);
     }
     
