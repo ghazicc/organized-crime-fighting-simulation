@@ -77,6 +77,7 @@ typedef struct {
 
 typedef struct {
     int gang_id;
+    pid_t pid;
     int target_type;
     int prep_time;
     int prep_level;
