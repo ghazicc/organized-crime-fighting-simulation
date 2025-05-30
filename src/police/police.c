@@ -198,11 +198,13 @@ void communicate_with_agents(PoliceOfficer* officer) {
         }
     }
     
-    // Check for agent death notifications from gang
+    // Check for agent death notifications and reports from gang
     long police_msg_type = get_police_msgtype(MAX_AGENTS_PER_GANG, police_force.num_officers, (int8_t)officer->police_id);
     if (receive_message_nonblocking(officer->msgq_id, &msg, police_msg_type) == 0) {
         if (msg.mode == MSG_AGENT_DEATH) {
             handle_agent_death_notification(officer, &msg);
+        } else if (msg.mode == MSG_POLICE_REPORT) {
+            process_agent_message(officer, &msg);
         }
     }
 }

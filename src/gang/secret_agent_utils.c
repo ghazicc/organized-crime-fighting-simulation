@@ -13,6 +13,9 @@
 #include <unistd.h>
 #include <time.h>
 
+// External variables
+extern int police_msgq_id;
+
 void secret_agent_init(ShmPtrs* shm_ptrs, Member* member) {
     // Find the actual member in shared memory
     Member* shared_member = &shm_ptrs->gang_members[member->gang_id][member->member_id];
@@ -123,15 +126,28 @@ void conduct_internal_investigation(Config config, ShmPtrs* shm_ptrs, int gang_i
 
     }
 
-    for (int i = 0;i<gang->max_member_count;i++) {
+    // Execute agents with high suspicion and notify police
+    for (int i = 0; i < gang->max_member_count; i++) {
         if (shm_ptrs->gang_members[gang->gang_id][i].is_alive) {
             Member *m = &shm_ptrs->gang_members[gang->gang_id][i];
-            if (m->agent_id>0 && m->suspicion > config.suspicion_threshold) {
+            if (m->agent_id >= 0 && m->suspicion > config.suspicion_threshold) {
+                // Execute the agent
+                m->is_alive = false;
+                gang->num_alive_members--;
+                gang->num_agents--;
                 shm_ptrs->shared_game->num_executed_agents++;
-
+                
+                printf("Gang %d: Executed agent %d (suspicion: %.2f > threshold: %.2f)\n",
+                       gang->gang_id, m->agent_id, m->suspicion, config.suspicion_threshold);
+                fflush(stdout);
+                
+                // Notify police about agent death (assuming police_id matches gang_id for simplicity)
+                // In a real implementation, you might need to track which police planted this agent
+                int police_id = gang->gang_id; // Simple mapping for now
+                extern int police_msgq_id;
+                notify_police_agent_death(police_msgq_id, gang->gang_id, m->agent_id, police_id, gang, config);
             }
         }
-
     }
 
 }
@@ -151,15 +167,65 @@ void agent_report_knowledge(Member* agent, Game* shared_game, int police_msgid, 
     send_message(police_msgid, &msg);
 }
 
-void secret_agent_handle_police_requests(Member* agent, Game* shared_game, int police_msgid, int police_id,Gang* gang,Config config) {
+void secret_agent_handle_police_requests(Member* agent, Game* shared_game, int police_msgid, int police_id, Gang* gang, Config config) {
     Message msg;
     long agent_msgtype = get_agent_msgtype(gang->max_member_count, agent->gang_id, agent->member_id);
-    while (1) {
-        if (receive_message(police_msgid, &msg, agent_msgtype) == 0) {
-            if (msg.mode == 2) { // police requests knowledge
-                agent_report_knowledge(agent, shared_game, police_msgid, police_id,gang, config);
-            }
+    
+    // Check for police requests (non-blocking)
+    if (receive_message_nonblocking(police_msgid, &msg, agent_msgtype) == 0) {
+        if (msg.mode == MSG_POLICE_REQUEST) { // police requests knowledge
+            printf("Gang %d, Agent %d: Received police request for knowledge\n", 
+                   agent->gang_id, agent->member_id);
+            fflush(stdout);
+            agent_report_knowledge(agent, shared_game, police_msgid, police_id, gang, config);
         }
-        usleep(100000);
+    }
+}
+
+void secret_agent_periodic_communication(ShmPtrs* shm_ptrs, Member* agent, Game* shared_game, int police_msgid, int police_id, Gang* gang, Config config) {
+    // Get agent from shared memory
+    Member* shared_agent = &shm_ptrs->gang_members[agent->gang_id][agent->member_id];
+    
+    // Check if knowledge is above threshold for immediate reporting
+    if (shared_agent->knowledge > config.knowledge_threshold) {
+        printf("Gang %d, Agent %d: Knowledge %.2f above threshold %.2f - reporting gang involvement\n",
+               agent->gang_id, agent->member_id, shared_agent->knowledge, config.knowledge_threshold);
+        fflush(stdout);
+        
+        Message msg;
+        msg.mtype = get_police_msgtype(gang->max_member_count, config.num_gangs, police_id);
+        msg.mode = MSG_POLICE_REPORT;
+        msg.MessageContent.knowledge = shared_agent->knowledge;
+        
+        if (send_message(police_msgid, &msg) == 0) {
+            printf("Gang %d, Agent %d: Successfully reported high knowledge to police\n",
+                   agent->gang_id, agent->member_id);
+            fflush(stdout);
+        }
+    } else {
+        // Periodic report of current knowledge level (lower priority)
+        printf("Gang %d, Agent %d: Sending periodic knowledge report %.2f to police\n",
+               agent->gang_id, agent->member_id, shared_agent->knowledge);
+        fflush(stdout);
+        
+        Message msg;
+        msg.mtype = get_police_msgtype(gang->max_member_count, config.num_gangs, police_id);
+        msg.mode = MSG_POLICE_REPORT;
+        msg.MessageContent.knowledge = shared_agent->knowledge;
+        
+        send_message(police_msgid, &msg);
+    }
+}
+
+void notify_police_agent_death(int police_msgid, int gang_id, int agent_id, int police_id, Gang* gang, Config config) {
+    Message msg;
+    msg.mtype = get_police_msgtype(gang->max_member_count, config.num_gangs, police_id);
+    msg.mode = MSG_AGENT_DEATH;
+    msg.MessageContent.agent_id = agent_id;
+    
+    if (send_message(police_msgid, &msg) == 0) {
+        printf("Gang %d: Notified police %d about death of agent %d\n", 
+               gang_id, police_id, agent_id);
+        fflush(stdout);
     }
 }

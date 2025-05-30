@@ -115,9 +115,16 @@ void* actual_gang_member_thread_function(void* arg) {
                     }
                 }
                 
-                // TODO: Handle police requests for knowledge reporting
-                // This would require access to police message queue and config
-                // For now, we'll skip this part until message queue access is added
+                // Handle police communication for secret agents
+                if (member->agent_id >= 0) {
+                    // Handle police requests for knowledge reporting
+                    secret_agent_handle_police_requests(member, shm_ptrs.shared_game, police_msgq_id, 
+                                                       member->gang_id, gang, *config);
+                    
+                    // Send periodic communication to police
+                    secret_agent_periodic_communication(&shm_ptrs, member, shm_ptrs.shared_game, 
+                                                       police_msgq_id, member->gang_id, gang, *config);
+                }
             }
             
             // Simulate member contributing to preparation

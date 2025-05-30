@@ -17,6 +17,8 @@
 #include "shared_mem_utils.h"
 #include "semaphores_utils.h"
 #include "random.h"  // For random number generation
+#include "message.h"  // For message queue communication
+#include "secret_agent_utils.h"  // For secret agent functions
 
 Game *shared_game = NULL;
 ShmPtrs shm_ptrs;
@@ -27,6 +29,7 @@ volatile int should_terminate = 0; // Flag for clean termination
 
 void cleanup();
 void handle_sigint(int signum);
+void handle_police_handshake(int gang_id, const Config* config);
 
 int main(int argc, char *argv[]) {
     printf("Gang process starting...\n");
@@ -90,6 +93,15 @@ int main(int argc, char *argv[]) {
 
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
+
+    // Set up message queue for police communication
+    police_msgq_id = create_message_queue(POLICE_GANG_KEY);
+    if (police_msgq_id == -1) {
+        fprintf(stderr, "Gang %d: Failed to create/access message queue\n", gang_id);
+        exit(EXIT_FAILURE);
+    }
+    printf("Gang %d: Message queue initialized (ID: %d)\n", gang_id, police_msgq_id);
+    fflush(stdout);
 
     // Initialize synchronization primitives
     pthread_mutex_init(&gang->gang_mutex, NULL);
@@ -227,6 +239,8 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     
     while (!should_terminate) {
+        // Handle police handshake messages for agent planting
+        handle_police_handshake(gang_id, &config);
         // Reset for next plan
         pthread_mutex_lock(&gang->gang_mutex);
         gang->members_ready = 0;
@@ -307,6 +321,11 @@ int main(int argc, char *argv[]) {
             
             printf("Gang %d: Plan thwarted! Total thwarted plans: %d/%d\n", 
                    gang_id, total_thwarted, config.max_thwarted_plans);
+            
+            // Trigger internal investigation after thwarted plan
+            printf("Gang %d: Conducting internal investigation after thwarted plan\n", gang_id);
+            fflush(stdout);
+            conduct_internal_investigation(config, &shm_ptrs, gang_id);
         }
         
         // Signal all waiting members about the plan execution result
@@ -339,6 +358,54 @@ int main(int argc, char *argv[]) {
 
 }
 
+void handle_police_handshake(int gang_id, const Config* config) {
+    Message msg;
+    long gang_msgtype = get_gang_msgtype(config->max_gang_members, gang_id);
+    
+    // Check for handshake messages from police (non-blocking)
+    if (receive_message_nonblocking(police_msgq_id, &msg, gang_msgtype) == 0) {
+        if (msg.mode == MSG_HANDSHAKE) {
+            int police_id = msg.MessageContent.police_id;
+            printf("Gang %d: Received handshake from police %d\n", gang_id, police_id);
+            fflush(stdout);
+            
+            // Find an available member to convert to agent
+            int new_agent_id = -1;
+            for (int i = 0; i < gang->max_member_count; i++) {
+                if (members[i].is_alive && members[i].agent_id == -1) {
+                    // Convert this member to an agent
+                    members[i].agent_id = i;
+                    new_agent_id = i;
+                    gang->num_agents++;
+                    
+                    // Initialize secret agent attributes
+                    secret_agent_init(&shm_ptrs, &members[i]);
+                    
+                    printf("Gang %d: Member %d converted to secret agent for police %d\n", 
+                           gang_id, i, police_id);
+                    fflush(stdout);
+                    break;
+                }
+            }
+            
+            // Send response back to police
+            Message response;
+            response.mtype = get_police_msgtype(config->max_gang_members, config->num_gangs, police_id);
+            response.mode = MSG_HANDSHAKE;
+            response.MessageContent.agent_id = new_agent_id;
+            
+            if (send_message(police_msgq_id, &response) == 0) {
+                printf("Gang %d: Sent handshake response to police %d with agent_id %d\n", 
+                       gang_id, police_id, new_agent_id);
+                fflush(stdout);
+            } else {
+                printf("Gang %d: Failed to send handshake response to police %d\n", 
+                       gang_id, police_id);
+                fflush(stdout);
+            }
+        }
+    }
+}
 
 void handle_sigint(int signum) {
     // Set termination flag for clean shutdown
@@ -354,6 +421,13 @@ void cleanup() {
 
     printf("cleaning up gang\n");
     cleanup_semaphores();
+    
+    // Close message queue (but don't delete it - police process manages it)
+    if (police_msgq_id != -1) {
+        printf("Gang: Closing message queue\n");
+        // Note: We don't delete the queue here as it's shared with police
+    }
+    
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
