@@ -134,7 +134,8 @@ Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs) {
         close(shm_fd);
         exit(EXIT_FAILURE);
     }
-    
+
+    shm_ptrs->shared_game = game;
     // Close file descriptor
     close(shm_fd);
     
@@ -177,7 +178,12 @@ Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs) {
 }
 
 void cleanup_shared_memory(Game *shared_game) {
-
+    if (shared_game != NULL && shared_game != MAP_FAILED) {
+        if (munmap(shared_game, sizeof(Game)) == -1) {
+            perror("munmap failed");
+        }
+    }
+    shm_unlink(GAME_SHM_NAME);
 }
 
 

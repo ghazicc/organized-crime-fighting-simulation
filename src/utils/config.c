@@ -97,7 +97,6 @@ fflush(stdout);
 
     // Check if all required parameters are set
     return check_parameter_correctness(config);
-
 }
 
 void print_config(Config *config) {

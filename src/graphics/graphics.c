@@ -9,15 +9,14 @@
 #include "game.h"
 #include "gang.h"
 #include "shared_mem_utils.h"
-#include "semaphores_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
+
+#include "random.h"
+#include "semaphores_utils.h"
 
 /*──────────────────────── window/layout ────────────────────────*/
 #define WIN_W 1400
@@ -60,10 +59,8 @@ static Texture2D mustLoad(const char *path){
     }
     return t;
 }
-static int file_exists(const char *p){ struct stat st; return !stat(p,&st); }
 
 /*──────────────────────── shared-memory snapshot helpers ───────*/
-static ShmPtrs snap;          /* rebuilt every frame */
 Game *shared_game;
 
 /*──────────────────────── tiny helpers ─────────────────────────*/
@@ -127,7 +124,7 @@ static void draw_member(float cx, float cy, const Member *m) {
 
 
 /*──────────────────────── boxes: agents/game/police ────────────*/
-static void box_game(Rectangle r,const Config *cfg){
+static void box_game(Rectangle r,const Config *cfg, ShmPtrs snap){
     const Game *g=snap.shared_game;
     panel(r,"Game");
     int y=(int)r.y+40;
@@ -149,7 +146,7 @@ static void box_police(Rectangle r){
     int px=(int)(r.x+r.width/2-sz/2), py=(int)r.y+32;
     DrawTextureEx(texPolice,(Vector2){(float)px,(float)py},0.0f,(float)sz/texPolice.width,WHITE);
 }
-static void box_agents(Rectangle r,const Config *cfg){
+static void box_agents(Rectangle r,const Config *cfg, ShmPtrs snap){
     panel(r,"Agents");
     int active=0;
     for(int g_idx=0; g_idx < cfg->num_gangs; g_idx++) {
@@ -166,7 +163,7 @@ static void box_agents(Rectangle r,const Config *cfg){
 }
 
 /*──────────────────────── gangs panel ──────────────────────────*/
-static int collect_active(const Config*cfg,int *out){
+static int collect_active(const Config*cfg,int *out, ShmPtrs snap){
     int n=0;
     for(int i=0;i<cfg->num_gangs;i++){
         const Gang* g=&snap.gangs[i];
@@ -175,7 +172,7 @@ static int collect_active(const Config*cfg,int *out){
     return n;
 }
 
-static void box_gangs(Rectangle r,const Config*cfg){
+static void box_gangs(Rectangle r,const Config*cfg, ShmPtrs snap){
     panel(r,"Gangs");
 
     hScroll+= (float)(IsKeyDown(KEY_RIGHT)-IsKeyDown(KEY_LEFT))*12.f;
@@ -188,7 +185,7 @@ static void box_gangs(Rectangle r,const Config*cfg){
     // Vertical scroll limit also needs total content height, calculated later.
 
     int idx[128]; // Assuming max 128 gangs
-    int total_active_gangs = collect_active(cfg,idx);
+    int total_active_gangs = collect_active(cfg,idx, snap);
 
     int members_per_row_on_card = 4;
     int gangs_per_row_in_panel = 2;
@@ -351,6 +348,7 @@ static void box_gangs(Rectangle r,const Config*cfg){
 /*───────────────────────── main ───────────────────────────────*/
 int main(int argc, char *argv[]){
     Config cfg;
+    ShmPtrs snap;          /* rebuilt every frame */
 
     if (argc < 2) {
         fprintf(stderr, "graphics viewer: Missing serialized config argument\n");
@@ -366,31 +364,15 @@ int main(int argc, char *argv[]){
     texPolice = mustLoad(ASSETS_PATH"police.png");
     SetTargetFPS(60);
 
-    // Game *snapshot_buffer=malloc(total_shm_size);
-    // if (!snapshot_buffer) {
-    //     perror("malloc snapshot_buffer");
-    //     munmap(shm_ptr, total_shm_size);
-    //     CloseWindow();
-    //     return 1;
-    // }
-
-    // // Initialize semaphores for synchronization
-    // if (init_semaphores() != 0) {
-    //     fprintf(stderr, "Graphics: Failed to initialize semaphores\n");
-    //     munmap(shm_ptr, total_shm_size);
-    //     CloseWindow();
-    //     return 1;
-    // }
-
     while(!WindowShouldClose()){
 
 
         BeginDrawing();
           ClearBackground(COL_BG);
           box_police(R_POL);
-          box_agents(R_AGT,&cfg);
-          box_game  (R_GME,&cfg);
-          box_gangs (R_GAN,&cfg);
+          box_agents(R_AGT,&cfg, snap);
+          box_game  (R_GME,&cfg, snap);
+          box_gangs (R_GAN,&cfg, snap);
         EndDrawing();
     }
 
