@@ -25,9 +25,9 @@ void secret_agent_init(Game* shared_game, Member* member) {
     shared_member->askers_count = 0;
 }
 
-void secret_agent_record_asker(Game* shared_game,Member* agent, int asker_id) {
+void secret_agent_record_asker(Game* shared_game,Config config, Member* agent, int asker_id) {
   Member* shared_agent = &shared_game->gangs[agent->gang_id].members[agent->member_id];
-    if (shared_agent->askers_count < MAX_ASKERS) {
+    if (shared_agent->askers_count < config.max_askers) {
         for (int i = 0;i<shared_agent->askers_count;i++) {
             if (shared_agent->askers[i] == asker_id) {
                 return;
@@ -164,5 +164,3 @@ void secret_agent_handle_police_requests(Member* agent, Game* shared_game, int p
         usleep(100000);
     }
 }
-
-
