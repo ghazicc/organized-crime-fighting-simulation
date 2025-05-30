@@ -115,6 +115,7 @@ typedef struct {
     int members_ready;                   // Count of members who have completed preparation
     int plan_success;                    // Whether the plan succeeded (0=not determined, 1=success, -1=failure)
     int plan_in_progress;                // Whether a plan is currently in progress
+    float current_success_rate;          // Current plan's calculated success rate (0-100%)
 } Gang;
 
 // Target struct

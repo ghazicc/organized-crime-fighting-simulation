@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
     gang->members_ready = 0;
     gang->plan_success = 0; // 0 = not determined
     gang->plan_in_progress = 1; // Start with first plan in progress
+    gang->current_success_rate = 0.0f; // Initialize success rate
 
 
     printf("Gang %d process started...\n", gang_id);
@@ -259,6 +260,7 @@ int main(int argc, char *argv[]) {
         gang->members_ready = 0;
         gang->plan_success = 0;
         gang->plan_in_progress = 1;
+        gang->current_success_rate = 0.0f; // Reset success rate for new plan
         
         // Reset preparation levels for new plan
         reset_preparation_levels(gang, members);
@@ -294,6 +296,11 @@ int main(int argc, char *argv[]) {
         
         // All members are ready, calculate if the plan succeeds
         printf("Gang %d: Main thread detected all members ready - calculating success rate\n", gang_id);
+        fflush(stdout);
+        
+        // Calculate and store the success rate for GUI display
+        gang->current_success_rate = calculate_success_rate(gang, members, gang->target_type, &config);
+        printf("Gang %d: Calculated success rate: %.2f%%\n", gang_id, gang->current_success_rate);
         fflush(stdout);
         
         // Calculate if the plan succeeds
