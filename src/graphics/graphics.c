@@ -208,7 +208,7 @@ static void box_police(Rectangle r, ShmPtrs snap)
         DrawText("No Game struct!",(int)r.x+PAD,(int)r.y+40,18,RED);
         return;
     }
-    pf = &g->police_force;
+    const PoliceForce *pf = &g->police_force;
     int icon = 32; // Smaller icon for more space
     int y = (int)r.y + 40;
     
