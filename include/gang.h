@@ -74,6 +74,18 @@ typedef struct {
     float misinformation_level;         // How much false info this member has (0.0 to 1.0)
 } Member;
 
+// Function to calculate XP from rank (XP = rank^2)
+static inline int calculate_xp_from_rank(int rank) {
+    if (rank < 0) return 0;
+    return rank * rank;
+}
+
+// Function to update member XP based on current rank
+static inline void update_member_xp(Member *member) {
+    if (member) {
+        member->XP = calculate_xp_from_rank(member->rank);
+    }
+}
 
 typedef struct {
     int gang_id;
@@ -103,6 +115,7 @@ typedef struct {
     int members_ready;                   // Count of members who have completed preparation
     int plan_success;                    // Whether the plan succeeded (0=not determined, 1=success, -1=failure)
     int plan_in_progress;                // Whether a plan is currently in progress
+    float current_success_rate;          // Current plan's calculated success rate (0-100%)
 } Gang;
 
 // Target struct

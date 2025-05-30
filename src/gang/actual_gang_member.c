@@ -6,18 +6,31 @@
 #include "success_rate.h" // For success rate calculation
 #include "config.h"
 #include "target_selection.h"
+#include "secret_agent_utils.h" // For secret agent functionality
+#include "message.h" // For message handling
 
 extern ShmPtrs shm_ptrs;
 extern int highest_rank_member_id;
 extern volatile int should_terminate; // Flag for clean termination
+extern int police_msgq_id; // Message queue for police communication
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
     fflush(stdout);
-    Member *member = (Member*)arg;
+    ThreadArgs *thread_args = (ThreadArgs*)arg;
+    Member *member = thread_args->member;
+    Config *config = thread_args->config;
     Gang *gang = &shm_ptrs.gangs[member->gang_id];
     printf("Gang member %d in gang %d started\n", member->member_id, member->gang_id);
     fflush(stdout);
+    
+    // Initialize secret agent attributes if this member is an agent
+    if (member->agent_id >= 0) {
+        secret_agent_init(&shm_ptrs, member);
+        printf("Gang %d, Member %d: Initialized as secret agent with ID %d\n", 
+               member->gang_id, member->member_id, member->agent_id);
+        fflush(stdout);
+    }
     
     // Check if this is the highest-ranked member in the gang
     if (member->member_id == highest_rank_member_id) {
@@ -73,6 +86,48 @@ void* actual_gang_member_thread_function(void* arg) {
         
         // Preparation phase for this plan
         while (1) {
+            // Secret agent specific activities during preparation
+            if (member->agent_id >= 0) {
+                // Secret agents gather information by asking other gang members
+                // Randomly select another gang member to ask about the plan
+                if (gang->num_alive_members > 1 && rand() % 4 == 0) { // 25% chance per iteration
+                    int target_member_id = rand() % gang->max_member_count;
+                    if (target_member_id != member->member_id && 
+                        shm_ptrs.gang_members[member->gang_id][target_member_id].is_alive) {
+                        
+                        Member* target_member = &shm_ptrs.gang_members[member->gang_id][target_member_id];
+                        
+                        printf("Gang %d, Agent %d: Asking member %d for information\n",
+                               member->gang_id, member->member_id, target_member_id);
+                        fflush(stdout);
+                        
+                        // Record this member as having been asked for information
+                        // This is needed for internal investigations later
+                        secret_agent_record_asker(&shm_ptrs, *config, target_member, member->member_id);
+                        
+                        // Gather information from the target member
+                        secret_agent_ask_member(&shm_ptrs, member, target_member);
+                        
+                        printf("Gang %d, Agent %d: Information gathering complete, knowledge: %.2f, suspicion: %.2f\n",
+                               member->gang_id, member->member_id, 
+                               shm_ptrs.gang_members[member->gang_id][member->member_id].knowledge,
+                               shm_ptrs.gang_members[member->gang_id][member->member_id].suspicion);
+                        fflush(stdout);
+                    }
+                }
+                
+                // Handle police communication for secret agents
+                if (member->agent_id >= 0) {
+                    // Handle police requests for knowledge reporting
+                    secret_agent_handle_police_requests(member, shm_ptrs.shared_game, police_msgq_id, 
+                                                       member->gang_id, gang, *config);
+                    
+                    // Send periodic communication to police
+                    secret_agent_periodic_communication(&shm_ptrs, member, shm_ptrs.shared_game, 
+                                                       police_msgq_id, member->gang_id, gang, *config);
+                }
+            }
+            
             // Simulate member contributing to preparation
             member->prep_contribution += rand() % 10;
             
@@ -87,6 +142,13 @@ void* actual_gang_member_thread_function(void* arg) {
             if (member->prep_contribution >= gang->prep_level) {
                 printf("Gang %d, Member %d: Reached required preparation level %d\n",
                        member->gang_id, member->member_id, gang->prep_level);
+                fflush(stdout);
+                
+                // Increase rank for completing preparation and update XP
+                member->rank += 1;
+                update_member_xp(member);
+                printf("Gang %d, Member %d: Gained rank! Now has Rank %d (XP: %d)\n",
+                       member->gang_id, member->member_id, member->rank, member->XP);
                 fflush(stdout);
                 
                 // Lock the gang mutex to update shared state
@@ -121,9 +183,35 @@ void* actual_gang_member_thread_function(void* arg) {
                 if (gang->plan_success == 1) {
                     printf("Gang %d: Member %d celebrating successful plan!\n", 
                            gang->gang_id, member->member_id);
+                    
+                    // Gain extra rank for successful plan completion
+                    member->rank += 2;
+                    update_member_xp(member);
+                    printf("Gang %d: Member %d gained 2 ranks for successful plan! Now has Rank %d (XP: %d)\n",
+                           gang->gang_id, member->member_id, member->rank, member->XP);
+                    fflush(stdout);
                 } else {
                     printf("Gang %d: Member %d disappointed about failed plan...\n", 
                            gang->gang_id, member->member_id);
+                    
+                    // Conduct internal investigation if this is the highest-ranked member
+                    // and the plan was thwarted (failed)
+                    if (member->member_id == highest_rank_member_id) {
+                        printf("Gang %d: Plan thwarted! Highest-ranked member %d conducting internal investigation\n",
+                               member->gang_id, member->member_id);
+                        fflush(stdout);
+                        
+                        // Unlock mutex before investigation to avoid deadlock
+                        pthread_mutex_unlock(&gang->gang_mutex);
+                        
+                        conduct_internal_investigation(*config, &shm_ptrs, member->gang_id);
+                        
+                        printf("Gang %d: Internal investigation completed after thwarted plan\n", member->gang_id);
+                        fflush(stdout);
+                        
+                        // Re-lock mutex for cleanup
+                        pthread_mutex_lock(&gang->gang_mutex);
+                    }
                 }
                 
                 // Unlock the mutex

@@ -60,6 +60,8 @@ int load_config(const char *filename, Config *config) {
             else if (strcmp(key, "max_gang_size") == 0) config->max_gang_size = (int)value;
             else if (strcmp(key, "suspicion-threshold") == 0 || strcmp(key, "suspicion_threshold") == 0)
                 config->suspicion_threshold = value;
+            else if (strcmp(key, "knowledge-threshold") == 0 || strcmp(key, "knowledge_threshold") == 0)
+                config->knowledge_threshold = value;
             else if (strcmp(key, "agent_success_rate") == 0) config->agent_success_rate = value;
             else if (strcmp(key, "prison_period") == 0) config->prison_period = (int)value;
             else if (strcmp(key, "num_ranks") == 0) config->num_ranks = (int)value;
@@ -186,7 +188,7 @@ int check_parameter_correctness(const Config *config) {
 }
 
 void serialize_config(Config *config, char *buffer) {
-    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d %f",
+    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d",
             config->max_thwarted_plans,
             config->max_successful_plans,
             config->max_executed_agents,
@@ -196,6 +198,7 @@ void serialize_config(Config *config, char *buffer) {
             config->min_gang_size,
             config->max_gang_size,
             config->suspicion_threshold,
+            config->knowledge_threshold,
             config->agent_success_rate,
             config->prison_period,
             config->num_ranks,
@@ -210,13 +213,12 @@ void serialize_config(Config *config, char *buffer) {
             config->max_askers,
             config->timeout_period,
             config->min_prison_period,
-            config->max_prison_period,
-            config->knowledge_threshold
+            config->max_prison_period
     );
 }
 
 void deserialize_config(const char *buffer, Config *config) {
-    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d %f",
+    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d",
             &config->max_thwarted_plans,
             &config->max_successful_plans,
             &config->max_executed_agents,
@@ -226,6 +228,7 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->min_gang_size,
             &config->max_gang_size,
             &config->suspicion_threshold,
+            &config->knowledge_threshold,
             &config->agent_success_rate,
             &config->prison_period,
             &config->num_ranks,
@@ -240,8 +243,7 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->max_askers,
             &config->timeout_period,
             &config->min_prison_period,
-            &config->max_prison_period,
-            &config->knowledge_threshold
+            &config->max_prison_period
             );
 }
 

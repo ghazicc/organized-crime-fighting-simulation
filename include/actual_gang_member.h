@@ -2,6 +2,13 @@
 #define ACTUAL_GANG_MEMBER_H
 
 #include "game.h"
+#include "config.h"
+
+// Structure to pass both member and config to thread function
+typedef struct {
+    Member* member;
+    Config* config;
+} ThreadArgs;
 
 // External variables needed by the thread function
 extern Game *shared_game;

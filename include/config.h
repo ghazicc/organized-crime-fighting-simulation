@@ -15,6 +15,7 @@ typedef struct {
     int min_gang_size;
     int max_gang_size;
     float suspicion_threshold;
+    float knowledge_threshold;  // Threshold for agent knowledge reporting
     float agent_success_rate;
     int prison_period;
     int num_ranks;
@@ -30,7 +31,6 @@ typedef struct {
     int num_gangs;
     int min_prison_period;
     int max_prison_period;
-    float knowledge_threshold;
 } Config;
 
 int load_config(const char *filename, Config *config);

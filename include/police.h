@@ -80,6 +80,7 @@ void handle_gang_arrest(PoliceOfficer* officer);
 void handle_gang_release(PoliceOfficer* officer);
 void process_arrest_timers(PoliceForce* force);
 void init_police_force(Config *config);
+void sync_police_data_to_shared_memory(void);
 
 // Initialization and cleanup
 void start_police_operations(void);

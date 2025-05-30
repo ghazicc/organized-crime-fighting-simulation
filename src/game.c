@@ -29,6 +29,9 @@ int game_init(Game *game, pid_t *processes, Config *cfg) {
         GRAPHICS_EXECUTABLE
     };
 
+    // police process (first in array)
+    processes[0] = start_process(binary_paths[0], cfg, -1);
+    
     // gang processes
     for(int i = 0; i < cfg->num_gangs; i++) {
         processes[i+1] = start_process(binary_paths[1], cfg, i);

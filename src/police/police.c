@@ -71,6 +71,9 @@ void init_police_force(Config *config) {
     }
 
     printf("POLICE: Police force initialized successfully\n");
+    
+    // Initial sync to shared memory
+    sync_police_data_to_shared_memory();
 }
 
 int main(int argc, char *argv[]) {
@@ -151,8 +154,7 @@ void* police_officer_thread(void* arg) {
         if (!gang_arrested) {
             // Try to plant agents if we have fewer than maximum and within attempt limits
             if (officer->num_agents < config.max_agents_per_gang &&
-                (rand() % 100) < 20) { // 20% chance to try planting agent
-                // config.agent_success_rate = 0.5f; // Default value, should be passed properly
+                (rand() % 100) < 40) { // 40% chance to try planting agent (increased from 20%)
                 attempt_plant_agent_handshake(officer, &config);
             }
 
@@ -167,6 +169,9 @@ void* police_officer_thread(void* arg) {
         }
 
         sleep(1);  // Check every 2 seconds
+        
+        // Sync police data to shared memory for graphics interface
+        sync_police_data_to_shared_memory();
     }
 
     printf("POLICE: Officer %d thread terminating\n", officer->police_id);
@@ -191,7 +196,8 @@ void communicate_with_agents(PoliceOfficer* officer) {
         
         // Request info from agents that haven't reported recently
         time_t current_time = time(NULL);
-        if (current_time - officer->agents[i].last_report_time > 10) { // 10 seconds timeout
+        if (current_time - officer->agents[i].last_report_time > 10) // 10 seconds timeout
+        {
             request_information_from_agent(officer, i);
         }
     }
@@ -201,6 +207,8 @@ void communicate_with_agents(PoliceOfficer* officer) {
     if (receive_message_nonblocking(officer->msgq_id, &msg, police_msg_type) == 0) {
         if (msg.mode == MSG_AGENT_DEATH) {
             handle_agent_death_notification(officer, &msg);
+        } else if (msg.mode == MSG_POLICE_REPORT) {
+            process_agent_message(officer, &msg);
         }
     }
 }
@@ -228,6 +236,9 @@ void process_agent_message(PoliceOfficer* officer, Message* msg) {
     
     printf("POLICE: Officer %d received report from agent %d, knowledge: %.3f\n",
            officer->police_id, agent->agent_id, knowledge);
+    
+    // Sync updated knowledge to shared memory
+    sync_police_data_to_shared_memory();
     
     // Check if knowledge is below threshold
     if (knowledge < config.knowledge_threshold) {
@@ -450,7 +461,7 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
             clock_gettime(CLOCK_REALTIME, &timeout_start);
             
             bool received_response = false;
-            for (int timeout_check = 0; timeout_check < 50; timeout_check++) { // 5 seconds total
+            for (int timeout_check = 0; timeout_check < 20; timeout_check++) { // 2 seconds total (reduced from 5)
                 if (receive_message_nonblocking(officer->msgq_id, &response, response_type) == 0) {
                     received_response = true;
                     break;
@@ -472,6 +483,9 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
 
                 printf("POLICE: Officer %d successfully planted agent %d in gang %d\n", officer->police_id,
                        new_agent_id, officer->gang_id_monitoring);
+                       
+                // Sync the updated agent data to shared memory
+                sync_police_data_to_shared_memory();
                 return true;
             }
 
@@ -502,6 +516,9 @@ void handle_agent_death_notification(PoliceOfficer* officer, Message* msg) {
             
             printf("POLICE: Officer %d marked agent %d as inactive (dead)\n",
                    officer->police_id, dead_agent_id);
+            
+            // Sync the updated agent data to shared memory
+            sync_police_data_to_shared_memory();
             
             // Compact the agents array to remove inactive agents
             for (int j = i; j < officer->num_agents - 1; j++) {
@@ -538,4 +555,48 @@ void request_information_from_agent(PoliceOfficer* officer, int agent_index) {
         printf("POLICE: Officer %d failed to request information from agent %d\n",
                officer->police_id, officer->agents[agent_index].agent_id);
     }
+}
+
+void sync_police_data_to_shared_memory(void) {
+    if (shared_game == NULL) return;
+    
+    // Lock shared memory for writing
+    LOCK_GAME_STATS();
+    
+    // Copy police force data to shared memory
+    shared_game->police_force.num_officers = police_force.num_officers;
+    shared_game->police_force.shutdown_requested = police_force.shutdown_requested;
+    shared_game->police_force.msgq_id = police_force.msgq_id;
+    
+    // Copy arrested gangs array
+    memcpy(shared_game->police_force.arrested_gangs, police_force.arrested_gangs, 
+           sizeof(int) * police_force.num_officers);
+    
+    // Copy officer data
+    for (int i = 0; i < police_force.num_officers; i++) {
+        PoliceOfficer *local_officer = &police_force.officers[i];
+        PoliceOfficer *shared_officer = &shared_game->police_force.officers[i];
+        
+        shared_officer->police_id = local_officer->police_id;
+        shared_officer->gang_id_monitoring = local_officer->gang_id_monitoring;
+        shared_officer->is_active = local_officer->is_active;
+        shared_officer->num_agents = local_officer->num_agents;
+        shared_officer->knowledge_level = local_officer->knowledge_level;
+        shared_officer->msgq_id = local_officer->msgq_id;
+        
+        // Copy agent information
+        for (int j = 0; j < local_officer->num_agents; j++) {
+            shared_officer->agents[j] = local_officer->agents[j];
+        }
+        
+        // Clear unused agent slots
+        for (int j = local_officer->num_agents; j < MAX_AGENTS_PER_GANG; j++) {
+            shared_officer->agents[j].agent_id = -1;
+            shared_officer->agents[j].knowledge_level = 0.0f;
+            shared_officer->agents[j].is_active = false;
+            shared_officer->agents[j].last_report_time = 0;
+        }
+    }
+    
+    UNLOCK_GAME_STATS();
 }

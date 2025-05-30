@@ -15,5 +15,7 @@ void conduct_internal_investigation(Config config, ShmPtrs* shm_ptrs, int gang_i
 void police_request_agent_knowledge(int police_msgid, Game* shared_game, int8_t gang_id, int8_t agent_id, Config config, Gang* gang);
 void agent_report_knowledge(Member* agent, Game* shared_game, int police_msgid, int police_id, Gang* gang, Config config);
 void secret_agent_handle_police_requests(Member* agent, Game* shared_game, int police_msgid, int police_id, Gang* gang, Config config);
+void secret_agent_periodic_communication(ShmPtrs* shm_ptrs, Member* agent, Game* shared_game, int police_msgid, int police_id, Gang* gang, Config config);
+void notify_police_agent_death(int police_msgid, int gang_id, int agent_id, int police_id, Gang* gang, Config config);
 
 #endif // SECRET_AGENT_UTILS_H

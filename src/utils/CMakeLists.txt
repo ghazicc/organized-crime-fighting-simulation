@@ -3,7 +3,6 @@ add_library(utils SHARED
         config.c
         semaphores_utils.c
         shared_mem_utils.c
-        secret_agent_utils.c
         message_queue_utils.c
         random.c
 )

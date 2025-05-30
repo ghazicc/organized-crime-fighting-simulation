@@ -8,16 +8,18 @@
 #include <signal.h>
 #include <pthread.h>
 #include <unistd.h>  // For sleep()
+#include <math.h>    // For sqrt function
 #include "config.h"
 #include "game.h"
 #include "gang.h"
 #include "actual_gang_member.h"
-#include "secret_agent.h"
 #include "target_selection.h"
 #include "success_rate.h"  // For success rate calculation
 #include "shared_mem_utils.h"
 #include "semaphores_utils.h"
 #include "random.h"  // For random number generation
+#include "message.h"  // For message queue communication
+#include "secret_agent_utils.h"  // For secret agent functions
 
 Game *shared_game = NULL;
 ShmPtrs shm_ptrs;
@@ -25,9 +27,12 @@ Gang *gang;
 Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
 volatile int should_terminate = 0; // Flag for clean termination
+int police_msgq_id = -1; // Message queue for police communication
+static int global_agent_id_counter = 0; // Global counter for unique agent IDs
 
 void cleanup();
 void handle_sigint(int signum);
+void handle_police_handshake(int gang_id, const Config* config);
 
 int main(int argc, char *argv[]) {
     printf("Gang process starting...\n");
@@ -95,6 +100,15 @@ int main(int argc, char *argv[]) {
     gang->gang_id = gang_id;
     gang->pid = getpid();
 
+    // Set up message queue for police communication
+    police_msgq_id = create_message_queue(POLICE_GANG_KEY);
+    if (police_msgq_id == -1) {
+        fprintf(stderr, "Gang %d: Failed to create/access message queue\n", gang_id);
+        exit(EXIT_FAILURE);
+    }
+    printf("Gang %d: Message queue initialized (ID: %d)\n", gang_id, police_msgq_id);
+    fflush(stdout);
+
     // Initialize synchronization primitives
     pthread_mutex_init(&gang->gang_mutex, NULL);
     pthread_cond_init(&gang->prep_complete_cond, NULL); // once all members are ready
@@ -104,6 +118,7 @@ int main(int argc, char *argv[]) {
     gang->members_ready = 0;
     gang->plan_success = 0; // 0 = not determined
     gang->plan_in_progress = 1; // Start with first plan in progress
+    gang->current_success_rate = 0.0f; // Initialize success rate
 
 
     printf("Gang %d process started...\n", gang_id);
@@ -122,13 +137,19 @@ int main(int argc, char *argv[]) {
         
         members[i].gang_id = gang_id;
         members[i].member_id = i;
+        // Randomly assign rank first (0 to num_ranks-1)
         members[i].rank = rand() % config.num_ranks;
+        // Calculate XP from rank using the formula: XP = rank^2
+        members[i].XP = calculate_xp_from_rank(members[i].rank);
         members[i].prep_contribution = 0;
         members[i].agent_id = -1;
         members[i].knowledge = 0.0f;
         members[i].suspicion = 0.0f;
         members[i].faithfulness = 0.0f;
         members[i].is_alive = true;
+        
+        printf("Gang %d, Member %d: Rank=%d, XP=%d\n", gang_id, i, members[i].rank, members[i].XP);
+        fflush(stdout);
 
         // Set up means and standard deviations for attributes
         float means[NUM_ATTRIBUTES] = {
@@ -205,16 +226,18 @@ int main(int argc, char *argv[]) {
     }
 
     // Create threads for all gang members
+    ThreadArgs* thread_args = malloc(gang->max_member_count * sizeof(ThreadArgs));
     for(int i = 0; i < gang->max_member_count; i++) {
-        // Pass the member from the local members array
-        Member *thread_arg = &members[i];
+        // Set up thread arguments with both member and config
+        thread_args[i].member = &members[i];
+        thread_args[i].config = &config;
         
         // Create thread for each member
         int ret;
         pthread_t thread_id;
         
         printf("Creating gang member thread %d\n", i);
-        ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, thread_arg);
+        ret = pthread_create(&thread_id, NULL, actual_gang_member_thread_function, &thread_args[i]);
         
         members[i].thread = thread_id;
 
@@ -231,11 +254,14 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
     
     while (!should_terminate) {
+        // Handle police handshake messages for agent planting
+        handle_police_handshake(gang_id, &config);
         // Reset for next plan
         pthread_mutex_lock(&gang->gang_mutex);
         gang->members_ready = 0;
         gang->plan_success = 0;
         gang->plan_in_progress = 1;
+        gang->current_success_rate = 0.0f; // Reset success rate for new plan
         
         // Reset preparation levels for new plan
         reset_preparation_levels(gang, members);
@@ -271,6 +297,11 @@ int main(int argc, char *argv[]) {
         
         // All members are ready, calculate if the plan succeeds
         printf("Gang %d: Main thread detected all members ready - calculating success rate\n", gang_id);
+        fflush(stdout);
+        
+        // Calculate and store the success rate for GUI display
+        gang->current_success_rate = calculate_success_rate(gang, members, gang->target_type, &config);
+        printf("Gang %d: Calculated success rate: %.2f%%\n", gang_id, gang->current_success_rate);
         fflush(stdout);
         
         // Calculate if the plan succeeds
@@ -311,11 +342,18 @@ int main(int argc, char *argv[]) {
             
             printf("Gang %d: Plan thwarted! Total thwarted plans: %d/%d\n", 
                    gang_id, total_thwarted, config.max_thwarted_plans);
+            
+            // Trigger internal investigation after thwarted plan
+            printf("Gang %d: Conducting internal investigation after thwarted plan\n", gang_id);
+            fflush(stdout);
+            conduct_internal_investigation(config, &shm_ptrs, gang_id);
         }
         
         // Signal all waiting members about the plan execution result
         pthread_cond_broadcast(&gang->plan_execute_cond);
         gang->plan_in_progress = 0;
+        // Don't clear the success rate - keep it available for display
+        // The success rate will be reset only when starting a new plan
         pthread_mutex_unlock(&gang->gang_mutex);
 
         // Trigger information spreading after plan execution
@@ -343,6 +381,54 @@ int main(int argc, char *argv[]) {
 
 }
 
+void handle_police_handshake(int gang_id, const Config* config) {
+    Message msg;
+    long gang_msgtype = get_gang_msgtype(gang->max_member_count, gang_id);
+    
+    // Check for handshake messages from police (non-blocking)
+    if (receive_message_nonblocking(police_msgq_id, &msg, gang_msgtype) == 0) {
+        if (msg.mode == MSG_HANDSHAKE) {
+            int police_id = msg.MessageContent.police_id;
+            printf("Gang %d: Received handshake from police %d\n", gang_id, police_id);
+            fflush(stdout);
+            
+            // Find an available member to convert to agent
+            int new_agent_id = -1;
+            for (int i = 0; i < gang->max_member_count; i++) {
+                if (members[i].is_alive && members[i].agent_id == -1) {
+                    // Convert this member to an agent with globally unique ID
+                    new_agent_id = __sync_fetch_and_add(&global_agent_id_counter, 1); // Thread-safe increment
+                    members[i].agent_id = new_agent_id;
+                    gang->num_agents++;
+                    
+                    // Initialize secret agent attributes
+                    secret_agent_init(&shm_ptrs, &members[i]);
+                    
+                    printf("Gang %d: Member %d converted to secret agent with unique ID %d for police %d\n", 
+                           gang_id, i, new_agent_id, police_id);
+                    fflush(stdout);
+                    break;
+                }
+            }
+            
+            // Send response back to police
+            Message response;
+            response.mtype = get_police_msgtype(gang->max_member_count, config->num_gangs, police_id);
+            response.mode = MSG_HANDSHAKE;
+            response.MessageContent.agent_id = new_agent_id;
+            
+            if (send_message(police_msgq_id, &response) == 0) {
+                printf("Gang %d: Sent handshake response to police %d with agent_id %d\n", 
+                       gang_id, police_id, new_agent_id);
+                fflush(stdout);
+            } else {
+                printf("Gang %d: Failed to send handshake response to police %d\n", 
+                       gang_id, police_id);
+                fflush(stdout);
+            }
+        }
+    }
+}
 
 void handle_sigint(int signum) {
     // Set termination flag for clean shutdown
@@ -358,6 +444,13 @@ void cleanup() {
 
     printf("cleaning up gang\n");
     cleanup_semaphores();
+    
+    // Close message queue (but don't delete it - police process manages it)
+    if (police_msgq_id != -1) {
+        printf("Gang: Closing message queue\n");
+        // Note: We don't delete the queue here as it's shared with police
+    }
+    
     if (shared_game != NULL && shared_game != MAP_FAILED) {
         if (munmap(shared_game, sizeof(Game)) == -1) {
             perror("munmap failed");
