@@ -26,6 +26,7 @@ Gang *gang;
 Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
 volatile int should_terminate = 0; // Flag for clean termination
+int police_msgq_id = -1; // Message queue for police communication
 
 void cleanup();
 void handle_sigint(int signum);

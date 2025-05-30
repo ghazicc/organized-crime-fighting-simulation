@@ -12,6 +12,7 @@
 extern ShmPtrs shm_ptrs;
 extern int highest_rank_member_id;
 extern volatile int should_terminate; // Flag for clean termination
+extern int police_msgq_id; // Message queue for police communication
 
 void* actual_gang_member_thread_function(void* arg) {
     printf("Gang member thread started\n");
