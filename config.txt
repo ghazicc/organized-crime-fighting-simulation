@@ -20,6 +20,7 @@ max_gang_size=10
 suspicion-threshold=0.8
 knowledge-threshold=0.7
 agent_success_rate=0.5
+knowledge_threshold=0.7
 
 prison_period=10
 

@@ -35,6 +35,7 @@ protected:
         config.difficulty_level = -1;
         config.max_difficulty = -1;
         config.timeout_period = -1;
+        config.knowledge_threshold = -1;
     }
 
     void TearDown() override {
@@ -75,7 +76,8 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
         "max_askers=20\n"
         "timeout_period=5\n"
         "min_prison_period=3\n"
-        "max_prison_period=10";
+        "max_prison_period=10\n"
+        "knowledge_threshold=0.5";
 
     createTestConfigFile(content);
 
@@ -109,6 +111,7 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
     EXPECT_EQ(config.timeout_period, 5);
     EXPECT_EQ(config.min_prison_period, 3);
     EXPECT_EQ(config.max_prison_period, 10);
+    EXPECT_FLOAT_EQ(config.knowledge_threshold, 0.5f);
 
 }
 
@@ -143,6 +146,8 @@ TEST_F(ConfigTest, ValidParameterCheck) {
     config.timeout_period = 10;
     config.min_prison_period = 3;
     config.max_prison_period = 10;
+    config.knowledge_threshold = 0.3;
+
 
     int result = check_parameter_correctness(&config);
     EXPECT_EQ(result, 0);
@@ -196,6 +201,7 @@ TEST_F(ConfigTest, SerializeDeserialize) {
     original.max_prison_period = 30;
     original.num_gangs = 5;
     original.max_askers = 4;
+    original.knowledge_threshold = 0.7;
 
 
 
@@ -232,6 +238,7 @@ TEST_F(ConfigTest, SerializeDeserialize) {
     EXPECT_EQ(deserialized.max_prison_period, original.max_prison_period);
     EXPECT_EQ(deserialized.num_gangs, original.num_gangs);
     EXPECT_EQ(deserialized.max_askers, original.max_askers);
+    EXPECT_FLOAT_EQ(deserialized.knowledge_threshold, original.knowledge_threshold);
 }
 
 // Test handling of unknown keys in config file

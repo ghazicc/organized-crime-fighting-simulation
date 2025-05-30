@@ -31,6 +31,7 @@ typedef struct {
     int num_gangs;
     int min_prison_period;
     int max_prison_period;
+    float knowledge_threshold;
 } Config;
 
 int load_config(const char *filename, Config *config);

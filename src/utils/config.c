@@ -36,6 +36,7 @@ int load_config(const char *filename, Config *config) {
     config->max_askers = -1;  // Initialize max_askers
     config->min_prison_period = -1;
     config->max_prison_period = -1;
+    config->knowledge_threshold = -1;
 
     // Buffer to hold each line from the configuration file
     char line[256];
@@ -74,7 +75,7 @@ int load_config(const char *filename, Config *config) {
             else if (strcmp(key, "max_askers") == 0) config->max_askers = (int)value;  // Added max_askers
             else if (strcmp(key, "min_prison_period") == 0) config->min_prison_period = (int)value;
             else if (strcmp(key, "max_prison_period") == 0) config->max_prison_period = (int)value;
-
+            else if (strcmp(key, "knowledge_threshold") == 0) config->knowledge_threshold = value;
             else if (strcmp(key, "timeout_period") == 0) config->timeout_period = (int)value;
             else {
                 fprintf(stderr, "Unknown key: %s\n", key);
@@ -134,6 +135,7 @@ void print_config(Config *config) {
     printf("timeout_period: %d\n", config->timeout_period);
     printf("min_prison_period: %d\n", config->min_prison_period);
     printf("max_prison_period: %d\n", config->max_prison_period);
+    printf("knowledge_threshold: %f\n", config->knowledge_threshold);
     fflush(stdout);
 }
 
@@ -149,7 +151,7 @@ int check_parameter_correctness(const Config *config) {
         config->max_askers < 0 ||  // Check max_askers
         config->max_gang_size < 0 || config->difficulty_level < 0 || config->max_difficulty < 0
         || config->timeout_period < 0 || config->min_prison_period < 0 ||
-        config->max_prison_period < 0) {
+        config->max_prison_period < 0 || config->knowledge_threshold < 0) {
         fprintf(stderr, "Integer values must be greater than or equal to 0\n");
         return -1;
     }
@@ -211,7 +213,8 @@ void serialize_config(Config *config, char *buffer) {
             config->max_askers,
             config->timeout_period,
             config->min_prison_period,
-            config->max_prison_period
+            config->max_prison_period,
+            config->knowledge_threshold
     );
 }
 
@@ -241,7 +244,8 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->max_askers,
             &config->timeout_period,
             &config->min_prison_period,
-            &config->max_prison_period
+            &config->max_prison_period,
+            &config->knowledge_threshold
             );
 }
 

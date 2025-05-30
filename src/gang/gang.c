@@ -51,6 +51,8 @@ int main(int argc, char *argv[]) {
 
 
 
+
+
     // validate gang ID - check against actual number of gangs, not max possible
     if (gang_id < 0 || gang_id >= config.num_gangs) {
         fprintf(stderr, "Invalid gang ID: %d (num_gangs: %d, max_gangs: %d)\n", gang_id, config.num_gangs, config.max_gangs);
@@ -94,6 +96,7 @@ int main(int argc, char *argv[]) {
 
     // Update gang_id in shared memory
     gang->gang_id = gang_id;
+    gang->pid = getpid();
 
     // Set up message queue for police communication
     police_msgq_id = create_message_queue(POLICE_GANG_KEY);

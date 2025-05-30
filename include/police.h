@@ -67,7 +67,7 @@ typedef struct {
 // Function declarations
 void* police_officer_thread(void* arg);
 void monitor_gang_activity(PoliceOfficer* officer, ShmPtrs *shm_ptr);
-void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptr);
+void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptrs);
 bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config);
 void handle_agent_death_notification(PoliceOfficer* officer, Message* msg);
 void request_information_from_agent(PoliceOfficer* officer, int agent_index);
