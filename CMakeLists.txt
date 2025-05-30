@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.11.2)
 project(organized_crime C CXX)
 set(CMAKE_C_STANDARD 11)
 
+# Add the path to your custom find modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 include(cmake/FindJSON-C.cmake)
 # Use the standard package finding mechanism
 find_package(JSON-C REQUIRED)
