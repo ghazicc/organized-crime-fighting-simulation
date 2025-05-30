@@ -12,7 +12,6 @@
 #include "game.h"
 #include "gang.h"
 #include "actual_gang_member.h"
-#include "secret_agent.h"
 #include "target_selection.h"
 #include "success_rate.h"  // For success rate calculation
 #include "shared_mem_utils.h"
