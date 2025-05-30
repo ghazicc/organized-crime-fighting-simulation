@@ -22,8 +22,8 @@ float sum_array(const float *array, int size) {
     return total;
 }
 
-int find_highest_ranked_member(Gang *gang) {
-    if (gang == NULL || gang->max_member_count <= 0) {
+int find_highest_ranked_member(Gang *gang, Member *members) {
+    if (gang == NULL || gang->max_member_count <= 0 || members == NULL) {
         return -1;
     }
 
@@ -31,8 +31,8 @@ int find_highest_ranked_member(Gang *gang) {
     int highest_ranked_id = -1;
 
     for (int i = 0; i < gang->max_member_count; i++) {
-        if (gang->members[i].rank > highest_rank) {
-            highest_rank = gang->members[i].rank;
+        if (members[i].rank > highest_rank) {
+            highest_rank = members[i].rank;
             highest_ranked_id = i;
         }
     }
@@ -42,14 +42,14 @@ int find_highest_ranked_member(Gang *gang) {
 
 
 
-TargetType select_target(Game *game, Gang *gang, int highest_rank_member_id) {
-    if (game == NULL || gang == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->max_member_count) {
+TargetType select_target(Game *game, Gang *gang, Member *members, int highest_rank_member_id) {
+    if (game == NULL || gang == NULL || members == NULL || highest_rank_member_id < 0 || highest_rank_member_id >= gang->max_member_count) {
         // Default to bank robbery if something's wrong
         return TARGET_BANK_ROBBERY;
     }
 
     // Get the highest-ranked member
-    Member *leader = &gang->members[highest_rank_member_id];
+    Member *leader = &members[highest_rank_member_id];
     
     // Initialize random seed
     srand(time(NULL) + gang->gang_id);
@@ -112,9 +112,9 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
     
     // Set required preparation level based on target complexity
     // More complex targets require higher preparation levels
-    int base_prep_level = 50 + (target_type * 10); // Base level increases with complexity
-    random_factor = rand() % 20;  // Random factor 0-19
-    
+    int base_prep_level = 20; // Base level increases with complexity
+    random_factor = rand() % 5;  // Random factor 0-4
+
     gang->prep_level = base_prep_level + random_factor;
     
     printf("Gang %d preparation parameters set: time=%d, required level=%d\n", 
@@ -122,11 +122,11 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
     fflush(stdout);
 }
 
-void reset_preparation_levels(Gang *gang) {
-    if (gang == NULL) return;
+void reset_preparation_levels(Gang *gang, Member *members) {
+    if (gang == NULL || members == NULL) return;
     
     for (int i = 0; i < gang->max_member_count; i++) {
-        gang->members[i].prep_contribution = 0;
+        members[i].prep_contribution = 0;
     }
     
     printf("Gang %d preparation levels reset to 0\n", gang->gang_id);
