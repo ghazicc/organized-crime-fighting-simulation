@@ -331,7 +331,7 @@ void imprison_gang(PoliceOfficer* officer) {
            officer->gang_id_monitoring, police_force.arrested_gangs[officer->gang_id_monitoring]);
 }
 
-void take_police_action(PoliceOfficer* officer) {
+void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptrs) {
     // Decision based on knowledge level
     if (officer->knowledge_level > config.knowledge_threshold) {
         evaluate_imprisonment_probability(officer);
