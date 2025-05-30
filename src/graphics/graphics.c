@@ -39,7 +39,7 @@ static Rectangle R_GAN = {NEW_GAN_X, 0,    NEW_GAN_W, WIN_H-150};
 
 /* gang-card constants */
 #define CARD_W_UPDATED 300.f     // Updated card width
-#define BASE_CARD_H 170.f        /* header + margins for gang info */
+#define BASE_CARD_H 190.f        /* header + margins for gang info (increased for agent data) */
 static float hScroll = 0.f;
 static float vScroll = 0.f;
 
@@ -50,7 +50,7 @@ static float vScroll = 0.f;
 
 /* Spacing for members within the card's member grid */
 #define MEMBER_GRID_CELL_WIDTH 72.f  // Horizontal space allocated for one member (center to center)
-#define MEMBER_GRID_CELL_HEIGHT 95.f // Vertical space allocated for one member (center to center)
+#define MEMBER_GRID_CELL_HEIGHT 120.f // Vertical space allocated for one member (increased for agent data)
 
 
 /*──────────────────────── assets ───────────────────────────────*/
@@ -90,40 +90,39 @@ static void draw_member(float cx, float cy, const Member *m) {
     Texture2D current_member_tex = (m->agent_id >= 0) ? texAgent : texGang;
     DrawTextureEx(current_member_tex, (Vector2){member_draw_start_x, member_draw_start_y}, 0.0f, MEMBER_ICON_SIZE / current_member_tex.width, WHITE);
 
-    // Rank (on icon, top-right of icon space)
-    char rank_text[8];
     // Info below icon
-    float current_info_y = member_draw_start_y + MEMBER_ICON_SIZE + 4; // Start Y for text below icon
+    float current_info_y = member_draw_start_y + MEMBER_ICON_SIZE + 8; // More space below icon
     float text_x = member_draw_start_x;
 
     // Knowledge
     char knowledge_text[16];
     snprintf(knowledge_text, sizeof(knowledge_text), "K: %.0f%%", m->knowledge * 100.0f);
     DrawText(knowledge_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, DARKGRAY);
-    current_info_y += MEMBER_INFO_LINE_HEIGHT;
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
 
     // Prep Contribution (Text and Progress Bar)
     float prep_pct = m->prep_contribution > 100 ? 100.0f : (float)m->prep_contribution;
     Color prep_bar_color = (prep_pct > 70) ? DARKGREEN : (prep_pct > 30 ? ORANGE : RED);
-    
     char prep_text[16];
     snprintf(prep_text, sizeof(prep_text), "P: %.0f%%", prep_pct);
     DrawText(prep_text, (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
-    
-    // Draw bar next to "P: XX%" text, aligned to the right edge of the icon space
-    float prep_text_width_measured = MeasureText("P:100%", MEMBER_INFO_FONT_SIZE); // Measure widest possible prep text
+    float prep_text_width_measured = (float)MeasureText("P:100%", MEMBER_INFO_FONT_SIZE); // Cast to float
     float bar_start_x = text_x + prep_text_width_measured + 2;
     float bar_available_width = (member_draw_start_x + MEMBER_ICON_SIZE) - bar_start_x;
-    if (bar_available_width < 10) bar_available_width = 10; // min width for visibility
-    
+    if (bar_available_width < 10) bar_available_width = 10;
     DrawRectangle((int)bar_start_x, (int)current_info_y + 1, (int)bar_available_width, MEMBER_INFO_FONT_SIZE - 2, LIGHTGRAY);
     DrawRectangle((int)bar_start_x, (int)current_info_y + 1, (int)(bar_available_width * prep_pct / 100.f), MEMBER_INFO_FONT_SIZE - 2, prep_bar_color);
-    current_info_y += MEMBER_INFO_LINE_HEIGHT;
+    current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
 
-    // Agent status text (if applicable)
+    // Agent status and data (if applicable)
     if (m->agent_id >= 0) {
         DrawText("AGENT", (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, RED);
-        // current_info_y += MEMBER_INFO_LINE_HEIGHT; // If more info were to follow
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("AgentID: %d", m->agent_id), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, RED);
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("S: %.2f", m->suspicion), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
+        current_info_y += MEMBER_INFO_LINE_HEIGHT + 2;
+        DrawText(TextFormat("F: %.2f", m->faithfulness), (int)text_x, (int)current_info_y, MEMBER_INFO_FONT_SIZE, BLACK);
     }
 }
 
@@ -221,7 +220,7 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         int alive_members_count = current_gang->num_alive_members;
         
         int num_member_rows_on_card = (alive_members_count + members_per_row_on_card - 1) / members_per_row_on_card;
-        float card_actual_height = BASE_CARD_H + (num_member_rows_on_card * MEMBER_GRID_CELL_HEIGHT);
+        float card_actual_height = BASE_CARD_H + ((float)num_member_rows_on_card * MEMBER_GRID_CELL_HEIGHT); // Cast to float
 
         int panel_col_idx = k % gangs_per_row_in_panel;
 
@@ -255,7 +254,7 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         }
 
 
-        float current_card_x = (r.x + PAD) + panel_col_idx * (CARD_W_UPDATED + card_gap_x) - hScroll;
+        float current_card_x = (float)(r.x + PAD) + (float)panel_col_idx * (CARD_W_UPDATED + card_gap_x) - hScroll; // Cast to float
         float current_card_y = current_panel_row_y_start;
                                                                                             
         // Culling: Skip drawing if card is entirely out of view
@@ -315,10 +314,8 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
         int drawn_member_visual_count = 0;
         for (int m_loop_idx = 0; m_loop_idx < current_gang->max_member_count; m_loop_idx++) {
             if (member_array_for_gang[m_loop_idx].is_alive) {
-                // Calculate center for the member's drawing area
-                float member_center_x = text_start_x_in_card + (drawn_member_visual_count % members_per_row_on_card) * MEMBER_GRID_CELL_WIDTH + (MEMBER_GRID_CELL_WIDTH / 2.0f) - (PAD/2.0f); // Adjust X to be centered in cell
+                float member_center_x = text_start_x_in_card + (drawn_member_visual_count % members_per_row_on_card) * MEMBER_GRID_CELL_WIDTH + (MEMBER_GRID_CELL_WIDTH / 2.0f) - (PAD/2.0f);
                 float member_center_y = member_grid_y_offset_in_card + (drawn_member_visual_count / members_per_row_on_card) * MEMBER_GRID_CELL_HEIGHT + (MEMBER_GRID_CELL_HEIGHT / 2.0f);
-                
                 if (m_loop_idx == leader_member_idx) {
                     char leader_label[] = "Leader";
                     int leader_text_width = MeasureText(leader_label, 12);
@@ -326,16 +323,6 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
                 }
                 draw_member(member_center_x, member_center_y, &member_array_for_gang[m_loop_idx]);
                 drawn_member_visual_count++;
-
-                // After drawing member info, if member->agent_id >= 0, show agent data
-                if (member_array_for_gang[m_loop_idx].agent_id >= 0) {
-                    float ax = member_center_x - MEMBER_ICON_SIZE/2.0f;
-                    float ay = member_center_y + MEMBER_ICON_SIZE/2.0f + 2;
-                    DrawText(TextFormat("AgentID: %d", member_array_for_gang[m_loop_idx].agent_id), (int)ax, (int)ay, 12, RED); ay += 14;
-                    DrawText(TextFormat("K: %.2f", member_array_for_gang[m_loop_idx].knowledge), (int)ax, (int)ay, 12, BLACK); ay += 14;
-                    DrawText(TextFormat("S: %.2f", member_array_for_gang[m_loop_idx].suspicion), (int)ax, (int)ay, 12, BLACK); ay += 14;
-                    DrawText(TextFormat("F: %.2f", member_array_for_gang[m_loop_idx].faithfulness), (int)ax, (int)ay, 12, BLACK);
-                }
             }
         }
     }
@@ -390,10 +377,7 @@ int main(int argc, char *argv[]){
     texAgent  = mustLoad(ASSETS_PATH"agent.png");
     texPolice = mustLoad(ASSETS_PATH"police.png");
     SetTargetFPS(60);
-
     while(!WindowShouldClose()){
-
-
         BeginDrawing();
           ClearBackground(COL_BG);
           box_police(R_POL, snap);
@@ -401,7 +385,6 @@ int main(int argc, char *argv[]){
           box_gangs (R_GAN,&cfg, snap);
         EndDrawing();
     }
-
     UnloadTexture(texGang);
     UnloadTexture(texAgent);
     UnloadTexture(texPolice);

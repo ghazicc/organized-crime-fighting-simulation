@@ -122,7 +122,9 @@ int main(int argc, char *argv[]) {
         members[i].rank = rand() % config.num_ranks;
         members[i].prep_contribution = 0;
         members[i].agent_id = -1;
+        members[i].knowledge = 0.0f;
         members[i].suspicion = 0.0f;
+        members[i].faithfulness = 0.0f;
         members[i].is_alive = true;
 
         // Set up means and standard deviations for attributes
