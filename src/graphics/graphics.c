@@ -64,33 +64,7 @@ static int file_exists(const char *p){ struct stat st; return !stat(p,&st); }
 
 /*──────────────────────── shared-memory snapshot helpers ───────*/
 static ShmPtrs snap;          /* rebuilt every frame */
-
-static void rebuild_pointers(Game *hdr,const Config *cfg){
-    char *base=(char*)hdr;
-    snap.shared_game = hdr;
-    snap.gangs       = (Gang*)(base+sizeof(Game));
-
-    // NOTE: The following static array 'members_local' assumes that cfg->num_gangs
-    // (the number of gangs in the current simulation) will not exceed 128.
-    // If it can, this array should be dynamically sized based on cfg->num_gangs or cfg->max_gangs.
-    static Member* members_local[128];   /* up to 128 gangs */
-    snap.gang_members = members_local;
-
-    size_t offsetMembers = sizeof(Game)+cfg->num_gangs*sizeof(Gang);
-
-    for(int i=0;i<cfg->num_gangs;i++){
-        snap.gang_members[i] = (Member*)(base+offsetMembers+
-                               (size_t)i * cfg->max_gang_size * sizeof(Member));
-        
-        // Debug: Print gang statistics to verify data integrity
-        if (i < 2) { // Only print for first 2 gangs to avoid spam
-            printf("GRAPHICS: Gang %d - Success: %d, Thwarted: %d, Members: %d\n", 
-                   i, snap.gangs[i].num_successful_plans, snap.gangs[i].num_thwarted_plans,
-                   snap.gangs[i].num_alive_members);
-        }
-    }
-    snap.police = NULL; /* not rendered */
-}
+Game *shared_game;
 
 /*──────────────────────── tiny helpers ─────────────────────────*/
 static const char *target_name(TargetType t){
@@ -215,9 +189,9 @@ static void box_gangs(Rectangle r,const Config*cfg){
 
     int idx[128]; // Assuming max 128 gangs
     int total_active_gangs = collect_active(cfg,idx);
-    
-    int members_per_row_on_card = 4; 
-    int gangs_per_row_in_panel = 2; 
+
+    int members_per_row_on_card = 4;
+    int gangs_per_row_in_panel = 2;
     float card_gap_x = 24.f, card_gap_y = 24.f;
 
     Rectangle view_scissor_area ={r.x+1,r.y+70,r.width-2,r.height-71};
@@ -384,16 +358,7 @@ int main(int argc, char *argv[]){
     }
     deserialize_config(argv[1], &cfg);
 
-    size_t hdr_size=sizeof(Game);
-    size_t gangs_arr_size=cfg.num_gangs*sizeof(Gang);
-    size_t members_total_size=(size_t)cfg.num_gangs*cfg.max_gang_size*sizeof(Member);
-    size_t total_shm_size=hdr_size+gangs_arr_size+members_total_size;
-
-    int fd=shm_open(GAME_SHM_NAME,O_RDONLY,0);
-    if(fd==-1){ perror("shm_open"); return 1;}
-    void *shm_ptr=mmap(NULL,total_shm_size,PROT_READ,MAP_SHARED,fd,0);
-    close(fd);
-    if(shm_ptr==MAP_FAILED){ perror("mmap"); return 1;}
+    shared_game = setup_shared_memory_user(&cfg, &snap);
 
     if(!file_exists("assets/gang.png") && chdir("..")==-1){ 
         fprintf(stderr,"run viewer from project root, or ensure 'assets' dir is accessible\n"); return 1;
@@ -405,29 +370,24 @@ int main(int argc, char *argv[]){
     texPolice = mustLoad("assets/police.png");
     SetTargetFPS(60);
 
-    Game *snapshot_buffer=malloc(total_shm_size);
-    if (!snapshot_buffer) {
-        perror("malloc snapshot_buffer");
-        munmap(shm_ptr, total_shm_size);
-        CloseWindow();
-        return 1;
-    }
+    // Game *snapshot_buffer=malloc(total_shm_size);
+    // if (!snapshot_buffer) {
+    //     perror("malloc snapshot_buffer");
+    //     munmap(shm_ptr, total_shm_size);
+    //     CloseWindow();
+    //     return 1;
+    // }
 
-    // Initialize semaphores for synchronization
-    if (init_semaphores() != 0) {
-        fprintf(stderr, "Graphics: Failed to initialize semaphores\n");
-        munmap(shm_ptr, total_shm_size);
-        CloseWindow();
-        return 1;
-    }
+    // // Initialize semaphores for synchronization
+    // if (init_semaphores() != 0) {
+    //     fprintf(stderr, "Graphics: Failed to initialize semaphores\n");
+    //     munmap(shm_ptr, total_shm_size);
+    //     CloseWindow();
+    //     return 1;
+    // }
 
     while(!WindowShouldClose()){
-        // Use semaphore to ensure consistent snapshot of shared memory
-        LOCK_GAME_STATS();
-        memcpy(snapshot_buffer,shm_ptr,total_shm_size);
-        UNLOCK_GAME_STATS();
-        
-        rebuild_pointers(snapshot_buffer,&cfg);
+
 
         BeginDrawing();
           ClearBackground(COL_BG);
@@ -440,8 +400,5 @@ int main(int argc, char *argv[]){
 
     UnloadTexture(texGang); UnloadTexture(texAgent); UnloadTexture(texPolice);
     CloseWindow();
-    cleanup_semaphores();
-    munmap(shm_ptr,total_shm_size);
-    free(snapshot_buffer);
     return 0;
 }
