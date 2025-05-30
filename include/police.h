@@ -35,12 +35,16 @@ typedef struct {
     // Message queue communication
     int msgq_id;
 
-    // Agent management
+    // Agent management - indexed by agent_id
     int num_agents;
-    AgentInfo agents[MAX_AGENTS_PER_GANG];
+    AgentInfo agents[MAX_AGENTS_PER_GANG];  // Direct indexing by agent_id
 
     // Knowledge and monitoring
     float knowledge_level;
+
+    // Prison management
+    int prison_time_left;
+    bool gang_imprisoned;
 
     pthread_mutex_t officer_mutex;
 
@@ -70,15 +74,14 @@ void monitor_gang_activity(PoliceOfficer* officer, ShmPtrs *shm_ptr);
 void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptrs);
 bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config);
 void handle_agent_death_notification(PoliceOfficer* officer, Message* msg);
-void request_information_from_agent(PoliceOfficer* officer, int agent_index);
+void request_information_from_agent(PoliceOfficer* officer, int agent_id);
 void communicate_with_agents(PoliceOfficer* officer);
-void process_agent_message(PoliceOfficer* officer, Message* msg);
+void process_agent_message(PoliceOfficer* officer, Message* msg, int agent_id);
 void evaluate_imprisonment_probability(PoliceOfficer* officer);
 void imprison_gang(PoliceOfficer* officer);
 void investigate_gang(PoliceOfficer* officer);
 void handle_gang_arrest(PoliceOfficer* officer);
 void handle_gang_release(PoliceOfficer* officer);
-void process_arrest_timers(PoliceForce* force);
 void init_police_force(Config *config);
 
 // Initialization and cleanup

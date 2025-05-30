@@ -55,11 +55,13 @@ void init_police_force(Config *config) {
         officer->num_agents = 0;
         officer->knowledge_level = 0.0f;
         officer->msgq_id = police_force.msgq_id;
+        officer->prison_time_left = 0;  // No gang imprisoned initially
+        officer->gang_imprisoned = false;
 
         // Initialize officer mutex
         pthread_mutex_init(&officer->officer_mutex, NULL);
 
-        // Initialize agent info array
+        // Initialize agent info array - indexed by agent_id
         for (int j = 0; j < config->max_agents_per_gang; j++) {
             officer->agents[j].agent_id = -1;
             officer->agents[j].knowledge_level = 0.0f;
@@ -127,10 +129,9 @@ void start_police_operations(void) {
         printf("POLICE: Started thread for officer %d\n", i);
     }
 
-    // Start arrest timer processing in main thread
+    // Main thread now just waits for shutdown instead of managing prison timers
     while (!police_force.shutdown_requested) {
-        process_arrest_timers(&police_force);
-        sleep(1);  // Check every second
+        sleep(5);  // Check every 5 seconds for shutdown
     }
 }
 
@@ -143,16 +144,37 @@ void* police_officer_thread(void* arg) {
     srand(time(NULL) + officer->police_id);
 
     while (officer->is_active && !police_force.shutdown_requested) {
-        // Check if gang is arrested
-        pthread_mutex_lock(&police_force.arrest_mutex);
-        bool gang_arrested = (police_force.arrested_gangs[officer->gang_id_monitoring] > 0);
-        pthread_mutex_unlock(&police_force.arrest_mutex);
+        // Handle prison time countdown if gang is imprisoned
+        pthread_mutex_lock(&officer->officer_mutex);
+        if (officer->gang_imprisoned) {
+            officer->prison_time_left--;
+            if (officer->prison_time_left <= 0) {
+                // Release gang by sending SIGUSR2
+                Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
+                if (gang->pid > 0) {
+                    printf("POLICE: Officer %d releasing gang %d (PID: %d) with SIGUSR2\n",
+                           officer->police_id, officer->gang_id_monitoring, gang->pid);
+                    kill(gang->pid, SIGUSR2);
+                }
+                officer->gang_imprisoned = false;
+                officer->prison_time_left = 0;
+                
+                // Update shared arrest status
+                pthread_mutex_lock(&police_force.arrest_mutex);
+                police_force.arrested_gangs[officer->gang_id_monitoring] = 0;
+                pthread_mutex_unlock(&police_force.arrest_mutex);
+                
+                printf("POLICE: Officer %d released gang %d from prison\n",
+                       officer->police_id, officer->gang_id_monitoring);
+            }
+        }
+        pthread_mutex_unlock(&officer->officer_mutex);
 
-        if (!gang_arrested) {
-            // Try to plant agents if we have fewer than maximum and within attempt limits
+        // Only monitor if gang is not imprisoned
+        if (!officer->gang_imprisoned) {
+            // Try to plant agents if we have fewer than maximum
             if (officer->num_agents < config.max_agents_per_gang &&
                 (rand() % 100) < 20) { // 20% chance to try planting agent
-                // config.agent_success_rate = 0.5f; // Default value, should be passed properly
                 attempt_plant_agent_handshake(officer, &config);
             }
 
@@ -162,11 +184,11 @@ void* police_officer_thread(void* arg) {
             // Take action based on intelligence
             take_police_action(officer, &shm_ptrs);
         } else {
-            printf("POLICE: Officer %d - Gang %d is currently arrested\n",
-                   officer->police_id, officer->gang_id_monitoring);
+            printf("POLICE: Officer %d - Gang %d imprisoned for %d more time units\n",
+                   officer->police_id, officer->gang_id_monitoring, officer->prison_time_left);
         }
 
-        sleep(1);  // Check every 2 seconds
+        sleep(1);  // Check every second
     }
 
     printf("POLICE: Officer %d thread terminating\n", officer->police_id);
@@ -176,23 +198,23 @@ void* police_officer_thread(void* arg) {
 void communicate_with_agents(PoliceOfficer* officer) {
     Message msg;
     
-    // Check for messages from agents and gang (agent death notifications)
-    for (int i = 0; i < officer->num_agents; i++) {
-        if (!officer->agents[i].is_active) continue;
+    // Check for messages from all possible agent positions (indexed by agent_id)
+    for (int agent_id = 0; agent_id < config.max_agents_per_gang; agent_id++) {
+        if (!officer->agents[agent_id].is_active) continue;
         
         long agent_msg_type = get_agent_msgtype(config.max_agents_per_gang,
                                                (int8_t)officer->gang_id_monitoring, 
-                                               (int8_t)officer->agents[i].agent_id);
+                                               (int8_t)agent_id);
         
         // Try to receive message (non-blocking)
         if (receive_message_nonblocking(officer->msgq_id, &msg, agent_msg_type) == 0) {
-            process_agent_message(officer, &msg);
+            process_agent_message(officer, &msg, agent_id);
         }
         
         // Request info from agents that haven't reported recently
         time_t current_time = time(NULL);
-        if (current_time - officer->agents[i].last_report_time > 10) { // 10 seconds timeout
-            request_information_from_agent(officer, i);
+        if (current_time - officer->agents[agent_id].last_report_time > 10) { // 10 seconds timeout
+            request_information_from_agent(officer, agent_id);
         }
     }
     
@@ -205,41 +227,32 @@ void communicate_with_agents(PoliceOfficer* officer) {
     }
 }
 
-void process_agent_message(PoliceOfficer* officer, Message* msg) {
-    if (msg->mode != MSG_POLICE_REPORT)
-        return;
+void process_agent_message(PoliceOfficer* officer, Message* msg, int agent_id) {
+    if (msg->mode != MSG_POLICE_REPORT) return;
     
     float knowledge = msg->MessageContent.knowledge;
     
-    // Find the agent that sent this message
-    AgentInfo *agent = NULL;
-    for (int i = 0; i < officer->num_agents; i++) {
-        if (officer->agents[i].is_active) {
-            // In a real implementation, you'd match by agent_id from the message type
-            agent = &officer->agents[i];
-            break;
-        }
-    }
-    
-    if (!agent) return;
+    // Use agent_id as direct index
+    AgentInfo *agent = &officer->agents[agent_id];
+    if (!agent->is_active) return;
     
     agent->knowledge_level = knowledge;
     agent->last_report_time = time(NULL);
     
     printf("POLICE: Officer %d received report from agent %d, knowledge: %.3f\n",
-           officer->police_id, agent->agent_id, knowledge);
+           officer->police_id, agent_id, knowledge);
     
     // Check if knowledge is below threshold
-    if (knowledge < config.knowledge_threshold) {
+    if (knowledge < KNOWLEDGE_THRESHOLD) {
         // Periodic knowledge update - update officer's knowledge slightly
         officer->knowledge_level += 0.05f;
         if (officer->knowledge_level > 1.0f) officer->knowledge_level = 1.0f;
         
         // Check if all agents have knowledge below threshold
         bool all_below_threshold = true;
-        for (int i = 0; i < officer->num_agents; i++) {
+        for (int i = 0; i < config.max_agents_per_gang; i++) {
             if (officer->agents[i].is_active && 
-                officer->agents[i].knowledge_level >= config.knowledge_threshold) {
+                officer->agents[i].knowledge_level >= KNOWLEDGE_THRESHOLD) {
                 all_below_threshold = false;
                 break;
             }
@@ -247,8 +260,8 @@ void process_agent_message(PoliceOfficer* officer, Message* msg) {
         
         if (all_below_threshold && officer->num_agents > 1) {
             // Request info from another agent
-            for (int i = 0; i < officer->num_agents; i++) {
-                if (officer->agents[i].is_active && &officer->agents[i] != agent) {
+            for (int i = 0; i < config.max_agents_per_gang; i++) {
+                if (officer->agents[i].is_active && i != agent_id) {
                     request_information_from_agent(officer, i);
                     break;
                 }
@@ -306,29 +319,35 @@ void evaluate_imprisonment_probability(PoliceOfficer* officer) {
 }
 
 void imprison_gang(PoliceOfficer* officer) {
-    // Send SIGUSR1 signal to gang process
-    // Note: In a real implementation, you would need the gang process PID
-    // For now, we'll just handle the imprisonment timing
-    
     printf("POLICE: Officer %d imprisoning gang %d\n", 
            officer->police_id, officer->gang_id_monitoring);
     
+    // Set prison time for this officer to manage
+    pthread_mutex_lock(&officer->officer_mutex);
+    officer->prison_time_left = random_int(7, 20); // 7-20 time units
+    officer->gang_imprisoned = true;
+    pthread_mutex_unlock(&officer->officer_mutex);
+    
+    // Update shared arrest status
     pthread_mutex_lock(&police_force.arrest_mutex);
-    police_force.arrested_gangs[officer->gang_id_monitoring] = random_int(config.min_prison_period, config.max_prison_period); // 7-20 time units
+    police_force.arrested_gangs[officer->gang_id_monitoring] = officer->prison_time_left;
     pthread_mutex_unlock(&police_force.arrest_mutex);
     
-    // Mark plan as failed in shared memory
-    // Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
-    // pthread_mutex_lock(&gang->gang_mutex);
-    // gang->plan_success = -1;
-    // gang->plan_in_progress = 0;
+    // Send SIGUSR1 to gang to signal imprisonment
+    Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
+    if (gang->pid > 0) {
+        printf("POLICE: Officer %d sending SIGUSR1 to gang %d (PID: %d)\n",
+               officer->police_id, officer->gang_id_monitoring, gang->pid);
+        kill(gang->pid, SIGUSR1);
+    }
+    
+    // Update game statistics
     LOCK_GAME_STATS();
     shm_ptrs.shared_game->num_thwarted_plans++;
     UNLOCK_GAME_STATS();
-    // pthread_mutex_unlock(&gang->gang_mutex);
     
     printf("POLICE: Gang %d imprisoned for %d time units\n", 
-           officer->gang_id_monitoring, police_force.arrested_gangs[officer->gang_id_monitoring]);
+           officer->gang_id_monitoring, officer->prison_time_left);
 }
 
 void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptrs) {
@@ -351,25 +370,6 @@ void handle_gang_release(PoliceOfficer* officer) {
     gang->plan_success = 0;
     gang->members_ready = 0;
     pthread_mutex_unlock(&gang->gang_mutex);
-}
-
-void process_arrest_timers(PoliceForce* force) {
-    pthread_mutex_lock(&force->arrest_mutex);
-
-    for (int gang_id = 0; gang_id < force->num_officers; gang_id++) {
-        if (force->arrested_gangs[gang_id] > 0) {
-            force->arrested_gangs[gang_id]--;
-
-            if (force->arrested_gangs[gang_id] == 0) {
-                // Gang is being released
-                pthread_mutex_unlock(&force->arrest_mutex);
-                handle_gang_release(&force->officers[gang_id]);
-                pthread_mutex_lock(&force->arrest_mutex);
-            }
-        }
-    }
-
-    pthread_mutex_unlock(&force->arrest_mutex);
 }
 
 void shutdown_police_force(void) {
@@ -461,22 +461,28 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
             if (received_response) {
                 // Gang responded with agent_id
                 int new_agent_id = response.MessageContent.agent_id;
-
-                // Add agent to officer's list
-                AgentInfo *agent = &officer->agents[officer->num_agents];
-                agent->agent_id = new_agent_id;
-                agent->knowledge_level = 0.0f;
-                agent->is_active = true;
-                agent->last_report_time = time(NULL);
-                officer->num_agents++;
-
-                printf("POLICE: Officer %d successfully planted agent %d in gang %d\n", officer->police_id,
-                       new_agent_id, officer->gang_id_monitoring);
-                return true;
+                
+                // Check if agent_id is valid (0 to max_agents_per_gang - 1)
+                if (new_agent_id >= 0 && new_agent_id < config->max_agents_per_gang) {
+                    // Use agent_id as direct index
+                    AgentInfo *agent = &officer->agents[new_agent_id];
+                    agent->agent_id = new_agent_id;
+                    agent->knowledge_level = 0.0f;
+                    agent->is_active = true;
+                    agent->last_report_time = time(NULL);
+                    officer->num_agents++;
+                    
+                    printf("POLICE: Officer %d successfully planted agent %d in gang %d\n",
+                           officer->police_id, new_agent_id, officer->gang_id_monitoring);
+                    return true;
+                } else {
+                    printf("POLICE: Officer %d received invalid agent_id %d from gang %d\n",
+                           officer->police_id, new_agent_id, officer->gang_id_monitoring);
+                }
+            } else {
+                printf("POLICE: Officer %d handshake timeout with gang %d (attempt %d/%d)\n",
+                       officer->police_id, officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
             }
-
-            printf("POLICE: Officer %d handshake timeout with gang %d (attempt %d/%d)\n", officer->police_id,
-                   officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
         } else {
             printf("POLICE: Officer %d failed to send handshake to gang %d (attempt %d/%d)\n",
                    officer->police_id, officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
@@ -494,48 +500,40 @@ void handle_agent_death_notification(PoliceOfficer* officer, Message* msg) {
     printf("POLICE: Officer %d received death notification for agent %d\n",
            officer->police_id, dead_agent_id);
     
-    // Find and deactivate the agent
-    for (int i = 0; i < officer->num_agents; i++) {
-        if (officer->agents[i].agent_id == dead_agent_id && officer->agents[i].is_active) {
-            officer->agents[i].is_active = false;
-            officer->agents[i].knowledge_level = 0.0f;
-            
-            printf("POLICE: Officer %d marked agent %d as inactive (dead)\n",
-                   officer->police_id, dead_agent_id);
-            
-            // Compact the agents array to remove inactive agents
-            for (int j = i; j < officer->num_agents - 1; j++) {
-                officer->agents[j] = officer->agents[j + 1];
-            }
-            officer->num_agents--;
-            
-            // Clear the last slot
-            officer->agents[officer->num_agents].agent_id = -1;
-            officer->agents[officer->num_agents].knowledge_level = 0.0f;
-            officer->agents[officer->num_agents].is_active = false;
-            officer->agents[officer->num_agents].last_report_time = 0;
-            
-            break;
-        }
+    // Use agent_id as direct index to deactivate the agent
+    if (dead_agent_id >= 0 && dead_agent_id < config.max_agents_per_gang && 
+        officer->agents[dead_agent_id].is_active) {
+        
+        officer->agents[dead_agent_id].is_active = false;
+        officer->agents[dead_agent_id].knowledge_level = 0.0f;
+        officer->agents[dead_agent_id].agent_id = -1;
+        officer->agents[dead_agent_id].last_report_time = 0;
+        officer->num_agents--;
+        
+        printf("POLICE: Officer %d marked agent %d as inactive (dead)\n",
+               officer->police_id, dead_agent_id);
+    } else {
+        printf("POLICE: Officer %d received invalid death notification for agent %d\n",
+               officer->police_id, dead_agent_id);
     }
 }
 
-void request_information_from_agent(PoliceOfficer* officer, int agent_index) {
-    if (agent_index >= officer->num_agents || !officer->agents[agent_index].is_active) {
+void request_information_from_agent(PoliceOfficer* officer, int agent_id) {
+    if (agent_id >= config.max_agents_per_gang || !officer->agents[agent_id].is_active) {
         return;
     }
     
     Message request;
     request.mtype = get_agent_msgtype(config.max_agents_per_gang,
                                      (int8_t)officer->gang_id_monitoring, 
-                                     (int8_t)officer->agents[agent_index].agent_id);
+                                     (int8_t)agent_id);
     request.mode = MSG_POLICE_REQUEST;
     
     if (send_message(officer->msgq_id, &request) == 0) {
         printf("POLICE: Officer %d requested information from agent %d\n",
-               officer->police_id, officer->agents[agent_index].agent_id);
+               officer->police_id, agent_id);
     } else {
         printf("POLICE: Officer %d failed to request information from agent %d\n",
-               officer->police_id, officer->agents[agent_index].agent_id);
+               officer->police_id, agent_id);
     }
 }
