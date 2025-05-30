@@ -26,6 +26,9 @@ num_ranks=7
 min_time_prepare=4
 max_time_prepare=10
 
+min_prison_period=7
+max_prison_period=10
+
 min_level_prepare=4
 max_level_prepare=10
 

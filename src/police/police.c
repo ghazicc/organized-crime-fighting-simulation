@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     // Police process is a user of shared memory, not the owner
     shared_game = setup_shared_memory_user(&config, &shm_ptrs);
 
-    init_police_force(shared_game, &config);
+    init_police_force(&config);
 
     printf("Police Department: Initialized successfully\n");
     fflush(stdout);
@@ -132,7 +132,7 @@ void* police_officer_thread(void* arg) {
            officer->police_id, officer->gang_id_monitoring);
 
     while (officer->is_active && !police_force.shutdown_requested) {
-        monitor_gang_activity(officer);
+        monitor_gang_activity(officer, &shm_ptrs);
 
         // Check if gang is arrested
         pthread_mutex_lock(&police_force.arrest_mutex);
@@ -151,8 +151,8 @@ void* police_officer_thread(void* arg) {
     return NULL;
 }
 
-void monitor_gang_activity(PoliceOfficer* officer) {
-    Gang *gang = shm_ptrs.gangs[officer->gang_id_monitoring];
+void monitor_gang_activity(PoliceOfficer* officer, ShmPtrs *shm_ptrs) {
+    Gang *gang = &shm_ptrs->gangs[officer->gang_id_monitoring];
 
     // Check for suspicious activity or plan execution
     pthread_mutex_lock(&gang->gang_mutex);
@@ -168,13 +168,13 @@ void monitor_gang_activity(PoliceOfficer* officer) {
         // Increase probability based on knowledge level
         arrest_probability += officer->knowledge_level * 0.3;
 
-        Member **members = shm_ptrs.gang_members[officer->gang_id_monitoring];
+        Member *members = shm_ptrs->gang_members[officer->gang_id_monitoring];
         // Check for secret agents in gang (they provide intelligence)
         for (int i = 0; i < gang->max_member_count; i++) {
-            if (members[i]->is_alive && members[i]->agent_id >= 0) {
+            if (members[i].is_alive && members[i].agent_id >= 0) {
                 // Check if this agent ID is in our managed list
                 for (int j = 0; j < officer->num_agents; j++) {
-                    if (officer->secret_agent_ids[j] == gang->members[i].agent_id) {
+                    if (officer->secret_agent_ids[j] == members[i].agent_id) {
                         arrest_probability += 0.2;  // Each agent increases chance by 20%
                         break;
                     }
@@ -190,7 +190,6 @@ void monitor_gang_activity(PoliceOfficer* officer) {
             printf("POLICE: Officer %d initiating arrest of gang %d\n",
                    officer->police_id, officer->gang_id_monitoring);
             handle_gang_arrest(officer);
-            police_force.total_plans_thwarted++;
         }
     }
 
@@ -203,15 +202,14 @@ void handle_gang_arrest(PoliceOfficer* officer) {
     pthread_mutex_lock(&police_force.arrest_mutex);
 
     // Set arrest time (from config prison_period)
-    police_force.arrested_gangs[gang_id] = officer->config->prison_period;
-    police_force.total_arrests++;
+    police_force.arrested_gangs[gang_id] = random_int(10, 20);
 
     pthread_mutex_unlock(&police_force.arrest_mutex);
 
-    printf("POLICE: Gang %d arrested for %d time units\n", gang_id, officer->config->prison_period);
+    printf("POLICE: Gang %d arrested for %d time units\n", gang_id, police_force.arrested_gangs[gang_id]);
 
     // Mark the plan as failed in shared memory
-    Gang *gang = &officer->shared_game->gangs[gang_id];
+    Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
     pthread_mutex_lock(&gang->gang_mutex);
     gang->plan_success = -1;  // Mark as failed
     gang->plan_in_progress = 0;
@@ -225,7 +223,7 @@ void handle_gang_release(PoliceOfficer* officer) {
     printf("POLICE: Gang %d has been released from prison\n", gang_id);
 
     // Reset gang state in shared memory
-    Gang *gang = &officer->shared_game->gangs[gang_id];
+    Gang *gang = &shm_ptrs.gangs[officer->gang_id_monitoring];
     pthread_mutex_lock(&gang->gang_mutex);
     gang->plan_in_progress = 0;
     gang->plan_success = 0;
@@ -273,9 +271,9 @@ void shutdown_police_force(void) {
     pthread_mutex_destroy(&police_force.police_mutex);
     pthread_mutex_destroy(&police_force.arrest_mutex);
 
-    printf("POLICE: Statistics - Arrests: %d, Plans Thwarted: %d, Agents Deployed: %d\n",
-           police_force.total_arrests, police_force.total_plans_thwarted,
-           police_force.total_agents_deployed);
+    // printf("POLICE: Statistics - Arrests: %d, Plans Thwarted: %d, Agents Deployed: %d\n",
+    //        police_force.total_arrests, police_force.total_plans_thwarted,
+    //        police_force.total_agents_deployed);
 }
 
 void handle_sigint(int signum) {

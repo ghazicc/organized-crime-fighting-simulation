@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include "config.h"
 #include "gang.h"
-#include "police.h"
 
 
 typedef struct Game {
@@ -22,8 +21,8 @@ typedef struct Game {
 
 typedef struct {
     Game *shared_game;
-    Gang **gangs; // Pointer to gangs array, dynamically allocated after Game
-    Member ***gang_members; // Array of pointers to each gang's member array
+    Gang *gangs; // Pointer to gangs array, dynamically allocated after Game
+    Member **gang_members; // Array of pointers to each gang's member array
 } ShmPtrs;
 
 // Still can keep these (but optional now)

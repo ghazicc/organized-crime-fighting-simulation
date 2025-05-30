@@ -7,11 +7,12 @@
 
 #include <pthread.h>
 #include <stdbool.h>
-#include "game.h"
 #include "config.h"
+#include "game.h"
 
 #define MAX_GANGS 20
 #define MAX_AGENTS_PER_GANG 20
+
 
 typedef struct {
     int police_id;
@@ -47,16 +48,16 @@ typedef struct {
 
 // Function declarations
 void* police_officer_thread(void* arg);
-void monitor_gang_activity(PoliceOfficer* officer);
-void take_police_action(PoliceOfficer* officer);
-void arrest_gang_members(PoliceOfficer* officer);
+void monitor_gang_activity(PoliceOfficer* officer, ShmPtrs *shm_ptr);
+void take_police_action(PoliceOfficer* officer, ShmPtrs *shm_ptr);
+void arrest_gang_members(PoliceOfficer* officer, ShmPtrs *shm_ptr);
 void investigate_gang(PoliceOfficer* officer);
 void handle_gang_arrest(PoliceOfficer* officer);
 void handle_gang_release(PoliceOfficer* officer);
 void process_arrest_timers(PoliceForce* force);
+void init_police_force(Config *config);
 
 // Initialization and cleanup
-void init_police_force(Game *shared_game, Config *config);
 void start_police_operations(void);
 void shutdown_police_force(void);
 void cleanup_police();
