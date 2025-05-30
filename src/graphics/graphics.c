@@ -20,8 +20,8 @@
 #include "semaphores_utils.h"
 
 /*──────────────────────── window/layout ────────────────────────*/
-#define WIN_W 1400
-#define WIN_H 800
+#define WIN_W 1300
+#define WIN_H 700
 #define SIDE_W 260
 #define POL_W  320
 #define POL_X  SIDE_W
