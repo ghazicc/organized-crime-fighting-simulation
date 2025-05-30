@@ -3,7 +3,7 @@
 ## Termination settings
 
 max_thwarted_plans=10
-max_successful_plans=3
+max_successful_plans=100
 max_executed_agents=10
 
 

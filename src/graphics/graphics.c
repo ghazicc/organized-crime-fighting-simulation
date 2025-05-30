@@ -410,8 +410,8 @@ static void box_gangs(Rectangle r,const Config *cfg, ShmPtrs snap){
 
         DrawText(TextFormat("State  : %s",gang_state_text),(int)text_start_x_in_card,(int)text_start_y_in_card,14,gang_state_color); text_start_y_in_card+=18;
         
-        // Show current success rate if plan is in progress
-        if (current_gang->plan_in_progress && current_gang->current_success_rate > 0.0f) {
+        // Show current success rate if it's available (whether plan is in progress or not)
+        if (current_gang->current_success_rate > 0.0f) {
             Color success_rate_color = (current_gang->current_success_rate > 70.0f) ? DARKGREEN :
                                       (current_gang->current_success_rate > 40.0f) ? ORANGE : RED;
             DrawText(TextFormat("Success Rate: %.1f%%", current_gang->current_success_rate),

@@ -28,6 +28,7 @@ Member *members; // Local pointer to this gang's members
 int highest_rank_member_id = -1;
 volatile int should_terminate = 0; // Flag for clean termination
 int police_msgq_id = -1; // Message queue for police communication
+static int global_agent_id_counter = 0; // Global counter for unique agent IDs
 
 void cleanup();
 void handle_sigint(int signum);
@@ -351,6 +352,8 @@ int main(int argc, char *argv[]) {
         // Signal all waiting members about the plan execution result
         pthread_cond_broadcast(&gang->plan_execute_cond);
         gang->plan_in_progress = 0;
+        // Don't clear the success rate - keep it available for display
+        // The success rate will be reset only when starting a new plan
         pthread_mutex_unlock(&gang->gang_mutex);
 
         // Trigger information spreading after plan execution
@@ -393,16 +396,16 @@ void handle_police_handshake(int gang_id, const Config* config) {
             int new_agent_id = -1;
             for (int i = 0; i < gang->max_member_count; i++) {
                 if (members[i].is_alive && members[i].agent_id == -1) {
-                    // Convert this member to an agent
-                    members[i].agent_id = i;
-                    new_agent_id = i;
+                    // Convert this member to an agent with globally unique ID
+                    new_agent_id = __sync_fetch_and_add(&global_agent_id_counter, 1); // Thread-safe increment
+                    members[i].agent_id = new_agent_id;
                     gang->num_agents++;
                     
                     // Initialize secret agent attributes
                     secret_agent_init(&shm_ptrs, &members[i]);
                     
-                    printf("Gang %d: Member %d converted to secret agent for police %d\n", 
-                           gang_id, i, police_id);
+                    printf("Gang %d: Member %d converted to secret agent with unique ID %d for police %d\n", 
+                           gang_id, i, new_agent_id, police_id);
                     fflush(stdout);
                     break;
                 }
