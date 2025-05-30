@@ -360,14 +360,10 @@ int main(int argc, char *argv[]){
 
     shared_game = setup_shared_memory_user(&cfg, &snap);
 
-    if(!file_exists("assets/gang.png") && chdir("..")==-1){ 
-        fprintf(stderr,"run viewer from project root, or ensure 'assets' dir is accessible\n"); return 1;
-    }
-
     InitWindow(WIN_W,WIN_H,"Bakery Gang Viewer (read-only)");
-    texGang   = mustLoad("assets/gang.png");
-    texAgent  = mustLoad("assets/agent.png");
-    texPolice = mustLoad("assets/police.png");
+    texGang   = mustLoad(ASSETS_PATH"gang.png");
+    texAgent  = mustLoad(ASSETS_PATH"agent.png");
+    texPolice = mustLoad(ASSETS_PATH"police.png");
     SetTargetFPS(60);
 
     // Game *snapshot_buffer=malloc(total_shm_size);
@@ -398,7 +394,9 @@ int main(int argc, char *argv[]){
         EndDrawing();
     }
 
-    UnloadTexture(texGang); UnloadTexture(texAgent); UnloadTexture(texPolice);
+    UnloadTexture(texGang);
+    UnloadTexture(texAgent);
+    UnloadTexture(texPolice);
     CloseWindow();
     return 0;
 }
