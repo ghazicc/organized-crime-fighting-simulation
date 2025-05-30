@@ -73,7 +73,9 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
         "difficulty_level=0\n"
         "max_difficulty=10\n"
         "max_askers=20\n"
-        "timeout_period=5\n";
+        "timeout_period=5\n"
+        "min_prison_period=3\n"
+        "max_prison_period=10";
 
     createTestConfigFile(content);
 
@@ -105,6 +107,9 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
     EXPECT_EQ(config.max_difficulty, 10);
     EXPECT_EQ(config.max_askers, 20);
     EXPECT_EQ(config.timeout_period, 5);
+    EXPECT_EQ(config.min_prison_period, 3);
+    EXPECT_EQ(config.max_prison_period, 10);
+
 }
 
 // Test loading a non-existent config file
@@ -136,6 +141,8 @@ TEST_F(ConfigTest, ValidParameterCheck) {
     config.difficulty_level = 0;
     config.max_difficulty = 10;
     config.timeout_period = 10;
+    config.min_prison_period = 3;
+    config.max_prison_period = 10;
 
     int result = check_parameter_correctness(&config);
     EXPECT_EQ(result, 0);
@@ -165,14 +172,14 @@ TEST_F(ConfigTest, InvalidParameterCheck) {
 TEST_F(ConfigTest, SerializeDeserialize) {
     // Set up config with known values
     Config original;
-    original.max_thwarted_plans = 3;
-    original.max_successful_plans = 3;
-    original.max_executed_agents = 5;
-    original.max_agents_per_gang = 3;
-    original.min_gangs = 2;
-    original.max_gangs = 10;
-    original.min_gang_size = 3;
-    original.max_gang_size = 10;
+    original.max_thwarted_plans = 41;
+    original.max_successful_plans = 204;
+    original.max_executed_agents = 53;
+    original.max_agents_per_gang = 31;
+    original.min_gangs = 23;
+    original.max_gangs = 101;
+    original.min_gang_size = 36;
+    original.max_gang_size = 400;
     original.suspicion_threshold = 0.8f;
     original.agent_success_rate = 0.5f;
     original.prison_period = 10;
@@ -182,6 +189,15 @@ TEST_F(ConfigTest, SerializeDeserialize) {
     original.min_level_prepare = 4;
     original.max_level_prepare = 10;
     original.death_probability = 0.3f;
+    original.difficulty_level = 1;
+    original.max_difficulty = 11;
+    original.timeout_period = 6;
+    original.min_prison_period = 20;
+    original.max_prison_period = 30;
+    original.num_gangs = 5;
+    original.max_askers = 4;
+
+
 
     // Serialize to buffer
     char buffer[256];
@@ -209,6 +225,13 @@ TEST_F(ConfigTest, SerializeDeserialize) {
     EXPECT_EQ(deserialized.min_level_prepare, original.min_level_prepare);
     EXPECT_EQ(deserialized.max_level_prepare, original.max_level_prepare);
     EXPECT_FLOAT_EQ(deserialized.death_probability, original.death_probability);
+    EXPECT_EQ(deserialized.difficulty_level, original.difficulty_level);
+    EXPECT_EQ(deserialized.max_difficulty, original.max_difficulty);
+    EXPECT_EQ(deserialized.timeout_period, original.timeout_period);
+    EXPECT_EQ(deserialized.min_prison_period, original.min_prison_period);
+    EXPECT_EQ(deserialized.max_prison_period, original.max_prison_period);
+    EXPECT_EQ(deserialized.num_gangs, original.num_gangs);
+    EXPECT_EQ(deserialized.max_askers, original.max_askers);
 }
 
 // Test handling of unknown keys in config file
