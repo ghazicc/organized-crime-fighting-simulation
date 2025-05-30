@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include "config.h"
 #include "gang.h"
+#include "police.h"
 
 
 typedef struct Game {
@@ -14,16 +15,19 @@ typedef struct Game {
     int elapsed_time;
 
     // Target definitions
+    PoliceForce police_force;
     Target targets[NUM_TARGETS];
 
 } Game;
 
 
-typedef struct {
+// To this:
+typedef struct ShmPtrs {
     Game *shared_game;
-    Gang *gangs; // Pointer to gangs array, dynamically allocated after Game
-    Member **gang_members; // Array of pointers to each gang's member array
+    Gang *gangs;
+    Member **gang_members;
 } ShmPtrs;
+
 
 // Still can keep these (but optional now)
 pid_t start_process(const char *binary, Config *cfg, int id);

@@ -8,14 +8,15 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include "config.h"
-#include "game.h"
 #include "message.h"
 
-#define MAX_GANGS 20
+#define MAX_GANGS_POLICE 20
 #define MAX_AGENTS_PER_GANG 20
 #define KNOWLEDGE_THRESHOLD 0.8f
 #define MSG_QUEUE_KEY 0x1234
 #define MAX_PLANT_ATTEMPTS 3  // Maximum attempts to plant an agent
+
+typedef struct ShmPtrs ShmPtrs;
 
 // Agent information structure
 typedef struct {
@@ -58,8 +59,8 @@ typedef struct {
     pthread_mutex_t police_mutex;
     bool shutdown_requested;
 
-    int arrested_gangs[MAX_GANGS];
-    PoliceOfficer officers[MAX_GANGS];
+    int arrested_gangs[MAX_GANGS_POLICE];
+    PoliceOfficer officers[MAX_GANGS_POLICE];
 
 } PoliceForce;
 

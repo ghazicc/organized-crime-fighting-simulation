@@ -2,8 +2,6 @@
 #define ACTUAL_GANG_MEMBER_H
 
 #include "game.h"
-#include "gang.h"
-#include "target_selection.h"
 
 // External variables needed by the thread function
 extern Game *shared_game;

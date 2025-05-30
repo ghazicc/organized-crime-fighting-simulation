@@ -43,7 +43,7 @@ void init_police_force(Config *config) {
     pthread_mutex_init(&police_force.arrest_mutex, NULL);
 
     // Initialize arrested gangs array (0 = not arrested)
-    memset(police_force.arrested_gangs, 0, sizeof(int) * MAX_GANGS);
+    memset(police_force.arrested_gangs, 0, sizeof(int) * config->num_gangs);
 
     // Initialize each police officer
     for (int i = 0; i < config->num_gangs; i++) {
