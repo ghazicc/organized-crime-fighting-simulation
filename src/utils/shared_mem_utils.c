@@ -102,6 +102,10 @@ Game* setup_shared_memory_owner(Config *cfg, ShmPtrs *shm_ptrs) {
                shm_ptrs->gangs[i].num_thwarted_plans,
                (char*)shm_ptrs->gang_members[i] - (char*)game);
     }
+
+    for (int i = 0; i < cfg->num_gangs; i++) {
+
+    }
     
     printf("OWNER: Shared memory layout initialized\n");
     fflush(stdout);

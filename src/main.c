@@ -56,8 +56,8 @@ int main(int argc,char *argv[]) {
 
     printf("Number of gangs: %d\n", config.num_gangs);
 
-    // Allocate memory for process IDs (1 police + num_gangs gang processes + 1 graphics)
-    num_processes = 1 + config.num_gangs + 1;
+    // Allocate memory for process IDs (1 police + num_gangs gang processes)
+    num_processes = 1 + config.num_gangs;
     processes = malloc(num_processes * sizeof(pid_t));
     if (processes == NULL) {
         fprintf(stderr, "Failed to allocate memory for process array\n");

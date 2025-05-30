@@ -32,7 +32,10 @@ int load_config(const char *filename, Config *config) {
     config->max_level_prepare = -1;
     config->difficulty_level = -1;
     config->max_difficulty = -1;
+    config->timeout_period = -1;
     config->max_askers = -1;  // Initialize max_askers
+    config->min_prison_period = -1;
+    config->max_prison_period = -1;
 
     // Buffer to hold each line from the configuration file
     char line[256];
@@ -67,7 +70,10 @@ int load_config(const char *filename, Config *config) {
             else if (strcmp(key, "difficulty_level") == 0) config->difficulty_level = (int)value;
             else if (strcmp(key, "max_difficulty") == 0) config->max_difficulty = (int)value;
             else if (strcmp(key, "max_askers") == 0) config->max_askers = (int)value;  // Added max_askers
+            else if (strcmp(key, "min_prison_period") == 0) config->min_prison_period = (int)value;
+            else if (strcmp(key, "max_prison_period") == 0) config->max_prison_period = (int)value;
 
+            else if (strcmp(key, "timeout_period") == 0) config->timeout_period = (int)value;
             else {
                 fprintf(stderr, "Unknown key: %s\n", key);
                 fclose(file);
@@ -123,6 +129,9 @@ void print_config(Config *config) {
     printf("difficulty_level: %d\n", config->difficulty_level);
     printf("max_difficulty: %d\n", config->max_difficulty);
     printf("max_askers: %d\n", config->max_askers);  // Print max_askers
+    printf("timeout_period: %d\n", config->timeout_period);
+    printf("min_prison_period: %d\n", config->min_prison_period);
+    printf("max_prison_period: %d\n", config->max_prison_period);
     fflush(stdout);
 }
 
@@ -135,7 +144,10 @@ int check_parameter_correctness(const Config *config) {
         config->min_time_prepare < 0 || config->max_time_prepare < 0 ||
         config->min_level_prepare < 0 || config->max_level_prepare < 0 ||
         config->max_gang_size < 0 || config->difficulty_level < 0 || config->max_difficulty < 0 ||
-        config->max_askers < 0) {  // Check max_askers
+        config->max_askers < 0 ||  // Check max_askers
+        config->max_gang_size < 0 || config->difficulty_level < 0 || config->max_difficulty < 0
+        || config->timeout_period < 0 || config->min_prison_period < 0 ||
+        config->max_prison_period < 0) {
         fprintf(stderr, "Integer values must be greater than or equal to 0\n");
         return -1;
     }
@@ -153,6 +165,11 @@ int check_parameter_correctness(const Config *config) {
         return -1;
     }
 
+    if (config->min_gang_size > config->max_gang_size) {
+        fprintf(stderr, "min_gang_size cannot be greater than max_gang_size\n");
+        return -1;
+    }
+
     if (config->min_time_prepare > config->max_time_prepare) {
         fprintf(stderr, "min_time_prepare cannot be greater than max_time_prepare\n");
         return -1;
@@ -167,7 +184,7 @@ int check_parameter_correctness(const Config *config) {
 }
 
 void serialize_config(Config *config, char *buffer) {
-    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d",
+    sprintf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d",
             config->max_thwarted_plans,
             config->max_successful_plans,
             config->max_executed_agents,
@@ -188,12 +205,15 @@ void serialize_config(Config *config, char *buffer) {
             config->difficulty_level,
             config->max_difficulty,
             config->num_gangs,
-            config->max_difficulty,
-            config->max_askers);
+            config->max_askers,
+            config->timeout_period,
+            config->min_prison_period,
+            config->max_prison_period
+    );
 }
 
 void deserialize_config(const char *buffer, Config *config) {
-    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d",
+    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d",
             &config->max_thwarted_plans,
             &config->max_successful_plans,
             &config->max_executed_agents,
@@ -213,7 +233,11 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->death_probability,
             &config->difficulty_level,
             &config->max_difficulty,
-            &config->max_askers,  // Deserialize max_askers
-            &config->num_gangs);
+            &config->num_gangs,
+            &config->max_askers,
+            &config->timeout_period,
+            &config->min_prison_period,
+            &config->max_prison_period
+            );
 }
 
