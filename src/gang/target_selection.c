@@ -112,9 +112,9 @@ void set_preparation_parameters(Gang *gang, TargetType target_type, Config *conf
     
     // Set required preparation level based on target complexity
     // More complex targets require higher preparation levels
-    int base_prep_level = 50 + (target_type * 10); // Base level increases with complexity
-    random_factor = rand() % 20;  // Random factor 0-19
-    
+    int base_prep_level = 20; // Base level increases with complexity
+    random_factor = rand() % 5;  // Random factor 0-4
+
     gang->prep_level = base_prep_level + random_factor;
     
     printf("Gang %d preparation parameters set: time=%d, required level=%d\n", 

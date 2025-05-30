@@ -6,23 +6,20 @@
  */
 #include <semaphore.h>
 
-/* Create a brand-new named semaphore (O_CREAT | O_EXCL).
- * 'value' is the initial counter.
- */
-sem_t *sem_create(const char *name, unsigned value);
+// Semaphore names for shared memory synchronization
+#define GAME_STATS_SEM_NAME "/game_stats_sem"
+#define GANG_STATS_SEM_NAME "/gang_stats_sem" 
 
-/* Open an existing named semaphore for read/write. */
-sem_t *sem_open_existing(const char *name);
+// Function declarations
+int init_semaphores(void);
+void cleanup_semaphores(void);
+sem_t* get_game_stats_semaphore(void);
+sem_t* get_gang_stats_semaphore(void);
 
-/* Utility wrapper that retries sem_wait() if it was interrupted by a signal
- * (EINTR).  Returns 0 on success, -1 on real error.
- */
-int sem_wait_intr(sem_t *sem);
-
-/* Close the descriptor (does NOT remove the semaphore). */
-void sem_close_safe(sem_t *sem);
-
-/* Remove the semaphore from the system (use once, typically by the owner). */
-void sem_unlink_safe(const char *name);
+// Helper macros for semaphore operations
+#define LOCK_GAME_STATS() sem_wait(get_game_stats_semaphore())
+#define UNLOCK_GAME_STATS() sem_post(get_game_stats_semaphore())
+#define LOCK_GANG_STATS() sem_wait(get_gang_stats_semaphore())
+#define UNLOCK_GANG_STATS() sem_post(get_gang_stats_semaphore())
 
 #endif /* SEMAPHORES_UTILS_H */
