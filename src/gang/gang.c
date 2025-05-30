@@ -360,7 +360,7 @@ int main(int argc, char *argv[]) {
 
 void handle_police_handshake(int gang_id, const Config* config) {
     Message msg;
-    long gang_msgtype = get_gang_msgtype(config->max_gang_members, gang_id);
+    long gang_msgtype = get_gang_msgtype(gang->max_member_count, gang_id);
     
     // Check for handshake messages from police (non-blocking)
     if (receive_message_nonblocking(police_msgq_id, &msg, gang_msgtype) == 0) {
@@ -390,7 +390,7 @@ void handle_police_handshake(int gang_id, const Config* config) {
             
             // Send response back to police
             Message response;
-            response.mtype = get_police_msgtype(config->max_gang_members, config->num_gangs, police_id);
+            response.mtype = get_police_msgtype(gang->max_member_count, config->num_gangs, police_id);
             response.mode = MSG_HANDSHAKE;
             response.MessageContent.agent_id = new_agent_id;
             

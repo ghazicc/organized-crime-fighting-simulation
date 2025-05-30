@@ -41,5 +41,4 @@ difficulty_level=0
 max_difficulty=10
 
 max_askers=20
-max_gang_members=10
 

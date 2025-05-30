@@ -72,7 +72,6 @@ int load_config(const char *filename, Config *config) {
             else if (strcmp(key, "difficulty_level") == 0) config->difficulty_level = (int)value;
             else if (strcmp(key, "max_difficulty") == 0) config->max_difficulty = (int)value;
             else if (strcmp(key, "max_askers") == 0) config->max_askers = (int)value;  // Added max_askers
-            else if (strcmp(key, "max_gang_members") == 0) config->max_gang_members = (int)value;  // Added max_gang_members
             else if (strcmp(key, "min_prison_period") == 0) config->min_prison_period = (int)value;
             else if (strcmp(key, "max_prison_period") == 0) config->max_prison_period = (int)value;
 
@@ -212,13 +211,12 @@ void serialize_config(Config *config, char *buffer) {
             config->max_askers,
             config->timeout_period,
             config->min_prison_period,
-            config->max_prison_period,
-            config->max_gang_members
+            config->max_prison_period
     );
 }
 
 void deserialize_config(const char *buffer, Config *config) {
-    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d %d",
+    sscanf(buffer, "%d %d %d %d %d %d %d %d %f %f %f %d %d %d %d %d %d %f %d %d %d %d %d %d %d",
             &config->max_thwarted_plans,
             &config->max_successful_plans,
             &config->max_executed_agents,
@@ -243,8 +241,7 @@ void deserialize_config(const char *buffer, Config *config) {
             &config->max_askers,
             &config->timeout_period,
             &config->min_prison_period,
-            &config->max_prison_period,
-            &config->max_gang_members
+            &config->max_prison_period
             );
 }
 

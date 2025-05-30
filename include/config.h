@@ -31,7 +31,6 @@ typedef struct {
     int num_gangs;
     int min_prison_period;
     int max_prison_period;
-    int max_gang_members;   // Maximum number of members per gang
 } Config;
 
 int load_config(const char *filename, Config *config);
