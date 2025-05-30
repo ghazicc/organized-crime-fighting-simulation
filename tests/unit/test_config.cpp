@@ -72,6 +72,7 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
         "death_probability=0.4\n"
         "difficulty_level=0\n"
         "max_difficulty=10\n"
+        "max_askers=20\n"
         "timeout_period=5\n";
 
     createTestConfigFile(content);
@@ -102,6 +103,7 @@ TEST_F(ConfigTest, LoadValidConfigFile) {
     EXPECT_FLOAT_EQ(config.death_probability, 0.4f);
     EXPECT_EQ(config.difficulty_level, 0);
     EXPECT_EQ(config.max_difficulty, 10);
+    EXPECT_EQ(config.max_askers, 20);
     EXPECT_EQ(config.timeout_period, 5);
 }
 

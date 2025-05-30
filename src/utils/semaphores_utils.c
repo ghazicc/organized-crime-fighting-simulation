@@ -1,7 +1,7 @@
 #include "semaphores_utils.h"
+#include <fcntl.h>      /* O_CREAT, O_EXCL */
 #include <stdio.h>
-#include <fcntl.h>
-#include <stdlib.h>
+#include <stdlib.h>     /* For exit() and EXIT_FAILURE */
 #include <errno.h>
 #include <unistd.h>
 

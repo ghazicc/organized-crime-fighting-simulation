@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include "gang.h"
@@ -58,6 +59,19 @@ Game* setup_shared_memory_owner(Config *cfg, ShmPtrs *shm_ptrs) {
     printf("OWNER: Initializing memory layout\n");
     fflush(stdout);
     
+    // CRITICAL: Zero out all shared memory to ensure clean initialization
+    memset(game, 0, total_size);
+    printf("OWNER: Zeroed out %zu bytes of shared memory\n", total_size);
+    fflush(stdout);
+    
+    // Initialize Game struct fields
+    game->num_successfull_plans = 0;
+    game->num_thwarted_plans = 0;
+    game->num_executed_agents = 0;
+    game->elapsed_time = 0;
+    printf("OWNER: Initialized Game struct counters to 0\n");
+    fflush(stdout);
+    
     // Set up pointers to dynamic parts
     shm_ptrs->gangs = (Gang*)((char*)game + sizeof(Game));
     
@@ -70,17 +84,22 @@ Game* setup_shared_memory_owner(Config *cfg, ShmPtrs *shm_ptrs) {
     
     // Set up gang member pointers
     for (int i = 0; i < cfg->num_gangs; i++) {
-        shm_ptrs->gangs[i].gang_id = i; // Pre-initialize gang IDs
+        // Initialize gang fields (memset already zeroed everything, but be explicit)
+        shm_ptrs->gangs[i].gang_id = i; 
         shm_ptrs->gangs[i].max_member_count = random_int(cfg->min_gang_size, cfg->max_gang_size);
         shm_ptrs->gangs[i].num_alive_members = shm_ptrs->gangs[i].max_member_count;
+        shm_ptrs->gangs[i].num_successful_plans = 0;  // Explicitly set to 0
+        shm_ptrs->gangs[i].num_thwarted_plans = 0;    // Explicitly set to 0
         
         // Set up local pointer to this gang's members
         shm_ptrs->gang_members[i] = (Member*)((char*)shm_ptrs->gangs +
                                        gangs_size + 
                                        i * cfg->max_gang_size * sizeof(Member));
         
-        printf("OWNER: Gang %d: %d members at offset %ld\n", 
+        printf("OWNER: Gang %d: %d members, success=%d, thwarted=%d, at offset %ld\n", 
                i, shm_ptrs->gangs[i].max_member_count,
+               shm_ptrs->gangs[i].num_successful_plans,
+               shm_ptrs->gangs[i].num_thwarted_plans,
                (char*)shm_ptrs->gang_members[i] - (char*)game);
     }
 
@@ -119,7 +138,8 @@ Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs) {
         close(shm_fd);
         exit(EXIT_FAILURE);
     }
-    
+
+    shm_ptrs->shared_game = game;
     // Close file descriptor
     close(shm_fd);
     
@@ -162,7 +182,12 @@ Game* setup_shared_memory_user(Config *cfg, ShmPtrs *shm_ptrs) {
 }
 
 void cleanup_shared_memory(Game *shared_game) {
-
+    if (shared_game != NULL && shared_game != MAP_FAILED) {
+        if (munmap(shared_game, sizeof(Game)) == -1) {
+            perror("munmap failed");
+        }
+    }
+    shm_unlink(GAME_SHM_NAME);
 }
 
 

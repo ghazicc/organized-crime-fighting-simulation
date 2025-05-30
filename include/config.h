@@ -26,6 +26,7 @@ typedef struct {
     int difficulty_level;
     int max_difficulty;
     int timeout_period;
+    int max_askers;         // Maximum number of members that can ask a secret agent
     int num_gangs;
 } Config;
 

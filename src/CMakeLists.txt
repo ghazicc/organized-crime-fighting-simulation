@@ -8,7 +8,7 @@ target_compile_definitions(main PRIVATE
         GANG_EXECUTABLE="$<TARGET_FILE:gang>"
         POLICE_EXECUTABLE="$<TARGET_FILE:police>"
         CONFIG_PATH="${CMAKE_SOURCE_DIR}/config.txt"
-#        GRAPHICS_EXECUTABLE="$<TARGET_FILE:graphics>"
+        GRAPHICS_EXECUTABLE="$<TARGET_FILE:graphics>"
 )
 
 # Add subdirectories for major components

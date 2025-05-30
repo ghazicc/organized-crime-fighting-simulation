@@ -11,8 +11,8 @@ max_executed_agents=10
 
 max_agents_per_gang=3
 
-min_gangs=2
-max_gangs=4
+min_gangs=5
+max_gangs=10
 
 min_gang_size=3
 max_gang_size=10
@@ -38,3 +38,6 @@ timeout_period=3
 
 difficulty_level=0
 max_difficulty=10
+
+max_askers=20
+

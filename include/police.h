@@ -33,11 +33,11 @@ typedef struct {
 
     // Message queue communication
     int msgq_id;
-    
+
     // Agent management
     int num_agents;
     AgentInfo agents[MAX_AGENTS_PER_GANG];
-    
+
     // Knowledge and monitoring
     float knowledge_level;
 
@@ -50,14 +50,14 @@ typedef struct {
 
     // Arrested gangs array - indexed by gang_id, value is time until release (0 = not arrested)
     pthread_mutex_t arrest_mutex;
-    
+
     // Message queue for communication
     int msgq_id;
-    
+
     // Coordination
     pthread_mutex_t police_mutex;
     bool shutdown_requested;
-    
+
     int arrested_gangs[MAX_GANGS];
     PoliceOfficer officers[MAX_GANGS];
 
