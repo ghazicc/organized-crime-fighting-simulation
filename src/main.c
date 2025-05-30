@@ -50,10 +50,9 @@ int main(int argc,char *argv[]) {
         return 1;
     }
 
-    
-
 
     // randomize the number of gangs based on the user-defined range
+    config.num_gangs = random_int(config.min_gangs, config.max_gangs);
 
     printf("Number of gangs: %d\n", config.num_gangs);
 
@@ -106,7 +105,7 @@ void cleanup_resources() {
         processes = NULL;
     }
     
-    // cleanup_shared_memory(shared_game);
+    cleanup_shared_memory(shared_game);
     cleanup_semaphores();
     
     // Unlink semaphores (only main process should do this)
