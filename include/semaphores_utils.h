@@ -1,5 +1,9 @@
 #ifndef SEMAPHORES_UTILS_H
 #define SEMAPHORES_UTILS_H
+
+/* A tiny convenience wrapper around POSIX named semaphores.
+ * All functions return NULL / -1 on error and print perror-style diagnostics.
+ */
 #include <semaphore.h>
 
 // Semaphore names for shared memory synchronization
@@ -18,4 +22,4 @@ sem_t* get_gang_stats_semaphore(void);
 #define LOCK_GANG_STATS() sem_wait(get_gang_stats_semaphore())
 #define UNLOCK_GANG_STATS() sem_post(get_gang_stats_semaphore())
 
-#endif // SEMAPHORES_UTILS_H
+#endif /* SEMAPHORES_UTILS_H */
