@@ -144,6 +144,13 @@ void* actual_gang_member_thread_function(void* arg) {
                        member->gang_id, member->member_id, gang->prep_level);
                 fflush(stdout);
                 
+                // Increase rank for completing preparation and update XP
+                member->rank += 1;
+                update_member_xp(member);
+                printf("Gang %d, Member %d: Gained rank! Now has Rank %d (XP: %d)\n",
+                       member->gang_id, member->member_id, member->rank, member->XP);
+                fflush(stdout);
+                
                 // Lock the gang mutex to update shared state
                 pthread_mutex_lock(&gang->gang_mutex);
                 
@@ -176,6 +183,13 @@ void* actual_gang_member_thread_function(void* arg) {
                 if (gang->plan_success == 1) {
                     printf("Gang %d: Member %d celebrating successful plan!\n", 
                            gang->gang_id, member->member_id);
+                    
+                    // Gain extra rank for successful plan completion
+                    member->rank += 2;
+                    update_member_xp(member);
+                    printf("Gang %d: Member %d gained 2 ranks for successful plan! Now has Rank %d (XP: %d)\n",
+                           gang->gang_id, member->member_id, member->rank, member->XP);
+                    fflush(stdout);
                 } else {
                     printf("Gang %d: Member %d disappointed about failed plan...\n", 
                            gang->gang_id, member->member_id);
