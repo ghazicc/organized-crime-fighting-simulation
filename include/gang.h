@@ -74,6 +74,18 @@ typedef struct {
     float misinformation_level;         // How much false info this member has (0.0 to 1.0)
 } Member;
 
+// Function to calculate XP from rank (XP = rank^2)
+static inline int calculate_xp_from_rank(int rank) {
+    if (rank < 0) return 0;
+    return rank * rank;
+}
+
+// Function to update member XP based on current rank
+static inline void update_member_xp(Member *member) {
+    if (member) {
+        member->XP = calculate_xp_from_rank(member->rank);
+    }
+}
 
 typedef struct {
     int gang_id;

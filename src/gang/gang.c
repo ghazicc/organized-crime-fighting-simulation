@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <unistd.h>  // For sleep()
+#include <math.h>    // For sqrt function
 #include "config.h"
 #include "game.h"
 #include "gang.h"
@@ -134,13 +135,19 @@ int main(int argc, char *argv[]) {
         
         members[i].gang_id = gang_id;
         members[i].member_id = i;
+        // Randomly assign rank first (0 to num_ranks-1)
         members[i].rank = rand() % config.num_ranks;
+        // Calculate XP from rank using the formula: XP = rank^2
+        members[i].XP = calculate_xp_from_rank(members[i].rank);
         members[i].prep_contribution = 0;
         members[i].agent_id = -1;
         members[i].knowledge = 0.0f;
         members[i].suspicion = 0.0f;
         members[i].faithfulness = 0.0f;
         members[i].is_alive = true;
+        
+        printf("Gang %d, Member %d: Rank=%d, XP=%d\n", gang_id, i, members[i].rank, members[i].XP);
+        fflush(stdout);
 
         // Set up means and standard deviations for attributes
         float means[NUM_ATTRIBUTES] = {
