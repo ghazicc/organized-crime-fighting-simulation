@@ -20,6 +20,7 @@
 PoliceForce police_force;
 Game *shared_game = NULL;
 ShmPtrs shm_ptrs;
+Config config;
 
 void cleanup();
 void handle_sigint(int signum);
@@ -59,7 +60,7 @@ void init_police_force(Config *config) {
         pthread_mutex_init(&officer->officer_mutex, NULL);
 
         // Initialize agent info array
-        for (int j = 0; j < MAX_AGENTS_PER_GANG; j++) {
+        for (int j = 0; j < config->max_agents_per_gang; j++) {
             officer->agents[j].agent_id = -1;
             officer->agents[j].knowledge_level = 0.0f;
             officer->agents[j].is_active = false;
@@ -84,7 +85,6 @@ int main(int argc, char *argv[]) {
     }
     
     // Load configuration from serialized string
-    Config config;
     deserialize_config(argv[1], &config);
 
     int police_department_id = atoi(argv[2]);
@@ -150,11 +150,9 @@ void* police_officer_thread(void* arg) {
 
         if (!gang_arrested) {
             // Try to plant agents if we have fewer than maximum and within attempt limits
-            if (officer->num_agents < MAX_AGENTS_PER_GANG && 
+            if (officer->num_agents < config.max_agents_per_gang &&
                 (rand() % 100) < 20) { // 20% chance to try planting agent
-                // Get config from shared memory or pass it somehow
-                Config config;
-                config.agent_success_rate = 0.5f; // Default value, should be passed properly
+                // config.agent_success_rate = 0.5f; // Default value, should be passed properly
                 attempt_plant_agent_handshake(officer, &config);
             }
 
@@ -168,7 +166,7 @@ void* police_officer_thread(void* arg) {
                    officer->police_id, officer->gang_id_monitoring);
         }
 
-        sleep(2);  // Check every 2 seconds
+        sleep(1);  // Check every 2 seconds
     }
 
     printf("POLICE: Officer %d thread terminating\n", officer->police_id);
@@ -182,7 +180,7 @@ void communicate_with_agents(PoliceOfficer* officer) {
     for (int i = 0; i < officer->num_agents; i++) {
         if (!officer->agents[i].is_active) continue;
         
-        long agent_msg_type = get_agent_msgtype(MAX_AGENTS_PER_GANG, 
+        long agent_msg_type = get_agent_msgtype(config.max_agents_per_gang,
                                                (int8_t)officer->gang_id_monitoring, 
                                                (int8_t)officer->agents[i].agent_id);
         
@@ -199,7 +197,7 @@ void communicate_with_agents(PoliceOfficer* officer) {
     }
     
     // Check for agent death notifications from gang
-    long police_msg_type = get_police_msgtype(MAX_AGENTS_PER_GANG, police_force.num_officers, (int8_t)officer->police_id);
+    long police_msg_type = get_police_msgtype(config.max_agents_per_gang, config.num_gangs, (int8_t)officer->police_id);
     if (receive_message_nonblocking(officer->msgq_id, &msg, police_msg_type) == 0) {
         if (msg.mode == MSG_AGENT_DEATH) {
             handle_agent_death_notification(officer, &msg);
@@ -208,7 +206,8 @@ void communicate_with_agents(PoliceOfficer* officer) {
 }
 
 void process_agent_message(PoliceOfficer* officer, Message* msg) {
-    if (msg->mode != MSG_POLICE_REPORT) return;
+    if (msg->mode != MSG_POLICE_REPORT)
+        return;
     
     float knowledge = msg->MessageContent.knowledge;
     
@@ -231,7 +230,7 @@ void process_agent_message(PoliceOfficer* officer, Message* msg) {
            officer->police_id, agent->agent_id, knowledge);
     
     // Check if knowledge is below threshold
-    if (knowledge < KNOWLEDGE_THRESHOLD) {
+    if (knowledge < config.knowledge_threshold) {
         // Periodic knowledge update - update officer's knowledge slightly
         officer->knowledge_level += 0.05f;
         if (officer->knowledge_level > 1.0f) officer->knowledge_level = 1.0f;
@@ -240,7 +239,7 @@ void process_agent_message(PoliceOfficer* officer, Message* msg) {
         bool all_below_threshold = true;
         for (int i = 0; i < officer->num_agents; i++) {
             if (officer->agents[i].is_active && 
-                officer->agents[i].knowledge_level >= KNOWLEDGE_THRESHOLD) {
+                officer->agents[i].knowledge_level >= config.knowledge_threshold) {
                 all_below_threshold = false;
                 break;
             }
@@ -433,13 +432,13 @@ void cleanup() {
 }
 
 bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
-    if (officer->num_agents >= MAX_AGENTS_PER_GANG) {
+    if (officer->num_agents >= config->max_agents_per_gang) {
         return false;
     }
 
     for (int attempt = 0; attempt < MAX_PLANT_ATTEMPTS; attempt++) {
         // Check success rate probability
-        float random_value = (rand() % 100) / 100.0f;
+        float random_value = random_float(0, 1);
         if (random_value > config->agent_success_rate) {
             printf("POLICE: Officer %d failed success rate check (attempt %d/%d)\n", 
                    officer->police_id, attempt + 1, MAX_PLANT_ATTEMPTS);
@@ -448,7 +447,7 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
 
         // Send handshake message to gang
         Message handshake_msg;
-        handshake_msg.mtype = get_gang_msgtype(MAX_AGENTS_PER_GANG, (int8_t)officer->gang_id_monitoring);
+        handshake_msg.mtype = get_gang_msgtype(config->max_agents_per_gang, (int8_t)officer->gang_id_monitoring);
         handshake_msg.mode = MSG_HANDSHAKE;
         handshake_msg.MessageContent.police_id = officer->police_id;
 
@@ -458,7 +457,7 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
         if (send_message(officer->msgq_id, &handshake_msg) == 0) {
             // Wait for response from gang
             Message response;
-            long response_type = get_police_msgtype(MAX_AGENTS_PER_GANG, police_force.num_officers, (int8_t)officer->police_id);
+            long response_type = get_police_msgtype(config->max_agents_per_gang, police_force.num_officers, (int8_t)officer->police_id);
             
             // Set timeout for response (e.g., 5 seconds)
             struct timespec timeout_start;
@@ -476,7 +475,7 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
             if (received_response) {
                 // Gang responded with agent_id
                 int new_agent_id = response.MessageContent.agent_id;
-                
+
                 // Add agent to officer's list
                 AgentInfo *agent = &officer->agents[officer->num_agents];
                 agent->agent_id = new_agent_id;
@@ -484,14 +483,14 @@ bool attempt_plant_agent_handshake(PoliceOfficer* officer, Config* config) {
                 agent->is_active = true;
                 agent->last_report_time = time(NULL);
                 officer->num_agents++;
-                
-                printf("POLICE: Officer %d successfully planted agent %d in gang %d\n",
-                       officer->police_id, new_agent_id, officer->gang_id_monitoring);
+
+                printf("POLICE: Officer %d successfully planted agent %d in gang %d\n", officer->police_id,
+                       new_agent_id, officer->gang_id_monitoring);
                 return true;
-            } else {
-                printf("POLICE: Officer %d handshake timeout with gang %d (attempt %d/%d)\n",
-                       officer->police_id, officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
             }
+
+            printf("POLICE: Officer %d handshake timeout with gang %d (attempt %d/%d)\n", officer->police_id,
+                   officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
         } else {
             printf("POLICE: Officer %d failed to send handshake to gang %d (attempt %d/%d)\n",
                    officer->police_id, officer->gang_id_monitoring, attempt + 1, MAX_PLANT_ATTEMPTS);
@@ -541,7 +540,7 @@ void request_information_from_agent(PoliceOfficer* officer, int agent_index) {
     }
     
     Message request;
-    request.mtype = get_agent_msgtype(MAX_AGENTS_PER_GANG, 
+    request.mtype = get_agent_msgtype(config.max_agents_per_gang,
                                      (int8_t)officer->gang_id_monitoring, 
                                      (int8_t)officer->agents[agent_index].agent_id);
     request.mode = MSG_POLICE_REQUEST;
